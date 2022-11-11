@@ -1221,7 +1221,7 @@ Name: Data, dtype: int64
     @overload
     def apply(
         self,
-        func: Callable[..., Hashable],
+        func: Callable[..., Scalar | Sequence | Mapping],
         convertDType: _bool = ...,
         args: tuple = ...,
         **kwds,
@@ -2786,7 +2786,7 @@ See the :ref:`user guide <basics.reindexing>` for more.
         ascending: _bool = ...,
         bins: int | None = ...,
         dropna: _bool = ...,
-    ) -> Series[S1]: ...
+    ) -> Series[int]: ...
     def transpose(self, *args, **kwargs) -> Series[S1]: ...
     @property
     def T(self) -> Series[S1]: ...
