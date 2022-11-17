@@ -110,7 +110,6 @@ from pandas._typing import (
     num,
 )
 
-from pandas.io.formats import format as fmt
 from pandas.io.formats.style import Styler
 from pandas.plotting import PlotAccessor
 
@@ -2954,8 +2953,6 @@ ValueError: Index contains duplicate entries, cannot reshape
     @property
     def at(self): ...  # Not sure what to do with this yet; look at source
     @property
-    def bool(self) -> _bool: ...
-    @property
     def columns(self) -> Index: ...
     @columns.setter  # setter needs to be right next to getter; otherwise mypy complains
     def columns(
@@ -3037,7 +3034,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     ) -> DataFrame: ...
     def astype(
         self,
-        dtype: _str | Dtype | dict[_str, _str | Dtype],
+        dtype: _str | Dtype | dict[_str, _str | Dtype] | Series,
         copy: _bool = ...,
         errors: _str = ...,
     ) -> DataFrame: ...
