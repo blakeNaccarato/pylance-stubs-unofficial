@@ -15,7 +15,7 @@ git submodule add https://github.com/blakeNaccarato/pylance-stubs-unofficial.git
 When Pylance updates, new differences may arise between local/CI type checking due to outdated stubs. If this repo has been updated to the latest stubs, pull its changes in.
 
 ```Shell
-git submodule update --remote --merge
+git submodule update --init --remote --merge
 ```
 
 ## Using in CI
