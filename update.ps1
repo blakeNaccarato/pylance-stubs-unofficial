@@ -4,7 +4,7 @@ function Update-PylanceStubs {
     #>
 
     # Remove existing stubs
-    Get-ChildItem -Exclude ('README.md', 'update.ps1') | Remove-Item -Recurse
+    Get-ChildItem -Exclude ('README.md', 'update.ps1', ".vscode") | Remove-Item -Recurse
 
     # Get the latest release
     $__ = @{
