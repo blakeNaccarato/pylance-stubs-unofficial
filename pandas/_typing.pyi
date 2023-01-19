@@ -1,16 +1,19 @@
 from builtins import type as type_t
+from collections.abc import (
+    Callable,
+    Hashable,
+    Iterator,
+    Mapping,
+    MutableSequence,
+    Sequence,
+)
 import datetime
 from os import PathLike
 from typing import (
     Any,
-    Callable,
-    Hashable,
-    Iterator,
     Literal,
-    Mapping,
     Optional,
     Protocol,
-    Sequence,
     TypedDict,
     TypeVar,
     Union,
@@ -151,13 +154,18 @@ num: TypeAlias = complex
 SeriesAxisType: TypeAlias = Literal[
     "index", 0
 ]  # Restricted subset of _AxisType for series
-AxisType: TypeAlias = Literal["columns", "index", 0, 1]
+AxisTypeIndex: TypeAlias = Literal["index", 0]
+AxisTypeColumn: TypeAlias = Literal["columns", 1]
+AxisType: TypeAlias = AxisTypeIndex | AxisTypeColumn
 DtypeNp = TypeVar("DtypeNp", bound=np.dtype[np.generic])
 KeysArgType: TypeAlias = Any
 ListLike = TypeVar("ListLike", Sequence, np.ndarray, "Series", "Index")
+ListLikeExceptSeriesAndStr = TypeVar(
+    "ListLikeExceptSeriesAndStr", MutableSequence, np.ndarray, tuple, "Index"
+)
 ListLikeU: TypeAlias = Union[Sequence, np.ndarray, Series, Index]
 StrLike: TypeAlias = Union[str, np.str_]
-Scalar: TypeAlias = Union[
+IndexIterScalar: TypeAlias = Union[
     str,
     bytes,
     datetime.date,
@@ -166,9 +174,12 @@ Scalar: TypeAlias = Union[
     bool,
     int,
     float,
-    complex,
     Timestamp,
     Timedelta,
+]
+Scalar: TypeAlias = Union[
+    IndexIterScalar,
+    complex,
 ]
 ScalarT = TypeVar("ScalarT", bound=Scalar)
 # Refine the definitions below in 3.9 to use the specialized type.
@@ -312,7 +323,7 @@ MergeHow: TypeAlias = Union[JoinHow, Literal["cross"]]
 JsonFrameOrient: TypeAlias = Literal[
     "split", "records", "index", "columns", "values", "table"
 ]
-JsonSeriesOrient: TypeAlias = Literal["split", "records", "index"]
+JsonSeriesOrient: TypeAlias = Literal["split", "records", "index", "table"]
 
 TimestampConvention: TypeAlias = Literal["start", "end", "s", "e"]
 

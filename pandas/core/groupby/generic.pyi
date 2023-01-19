@@ -1,12 +1,14 @@
-from typing import (
-    Any,
+from collections.abc import (
     Callable,
-    Generic,
     Iterable,
     Iterator,
+    Sequence,
+)
+from typing import (
+    Any,
+    Generic,
     Literal,
     NamedTuple,
-    Sequence,
     Union,
     overload,
 )
@@ -1034,3 +1036,4 @@ starting from the end of the object, just like with Python lists.
         ascending: bool = ...,
         dropna: bool = ...,
     ) -> Series[float]: ...
+    def __getattr__(self, name: str) -> SeriesGroupBy: ...
