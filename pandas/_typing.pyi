@@ -1,17 +1,19 @@
 from builtins import type as type_t
+from collections.abc import (
+    Callable,
+    Hashable,
+    Iterator,
+    Mapping,
+    MutableSequence,
+    Sequence,
+)
 import datetime
 from os import PathLike
 from typing import (
     Any,
-    Callable,
-    Hashable,
-    Iterator,
     Literal,
-    Mapping,
-    MutableSequence,
     Optional,
     Protocol,
-    Sequence,
     TypedDict,
     TypeVar,
     Union,
@@ -163,7 +165,7 @@ ListLikeExceptSeriesAndStr = TypeVar(
 )
 ListLikeU: TypeAlias = Union[Sequence, np.ndarray, Series, Index]
 StrLike: TypeAlias = Union[str, np.str_]
-Scalar: TypeAlias = Union[
+IndexIterScalar: TypeAlias = Union[
     str,
     bytes,
     datetime.date,
@@ -172,9 +174,12 @@ Scalar: TypeAlias = Union[
     bool,
     int,
     float,
-    complex,
     Timestamp,
     Timedelta,
+]
+Scalar: TypeAlias = Union[
+    IndexIterScalar,
+    complex,
 ]
 ScalarT = TypeVar("ScalarT", bound=Scalar)
 # Refine the definitions below in 3.9 to use the specialized type.
@@ -184,7 +189,7 @@ np_ndarray_anyint: TypeAlias = npt.NDArray[np.integer]
 np_ndarray_bool: TypeAlias = npt.NDArray[np.bool_]
 np_ndarray_str: TypeAlias = npt.NDArray[np.str_]
 
-IndexType: TypeAlias = Union[slice, np_ndarray_int64, Index, list[int], Series[int]]
+IndexType: TypeAlias = Union[slice, np_ndarray_anyint, Index, list[int], Series[int]]
 MaskType: TypeAlias = Union[Series[bool], np_ndarray_bool, list[bool]]
 # Scratch types for generics
 S1 = TypeVar(
@@ -318,7 +323,7 @@ MergeHow: TypeAlias = Union[JoinHow, Literal["cross"]]
 JsonFrameOrient: TypeAlias = Literal[
     "split", "records", "index", "columns", "values", "table"
 ]
-JsonSeriesOrient: TypeAlias = Literal["split", "records", "index"]
+JsonSeriesOrient: TypeAlias = Literal["split", "records", "index", "table"]
 
 TimestampConvention: TypeAlias = Literal["start", "end", "s", "e"]
 

@@ -1,11 +1,13 @@
-from types import TracebackType
-from typing import (
-    Any,
+from collections.abc import (
     Callable,
     Hashable,
     Iterable,
-    Literal,
     Sequence,
+)
+from types import TracebackType
+from typing import (
+    Any,
+    Literal,
     overload,
 )
 
@@ -394,7 +396,7 @@ class ExcelWriter:
     def __init__(
         self,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
-        engine: Literal["auto", "openpyxl", "pyxlsb", "odf"] | None = ...,
+        engine: Literal["auto", "openpyxl", "odf", "xlsxwriter"] | None = ...,
         date_format: str | None = ...,
         datetime_format: str | None = ...,
         mode: Literal["w", "a"] = ...,
@@ -405,11 +407,11 @@ class ExcelWriter:
     @property
     def supported_extensions(self) -> tuple[str, ...]: ...
     @property
-    def engine(self) -> Literal["openpyxl", "pyxlsb", "odf"]: ...
+    def engine(self) -> Literal["openpyxl", "odf", "xlsxwriter"]: ...
     @property
     def sheets(self) -> dict[str, Any]: ...
     @property
-    def book(self) -> Workbook | OpenDocument | pyxlsb.workbook.Workbook: ...
+    def book(self) -> Workbook | OpenDocument: ...
     @property
     def date_format(self) -> str: ...
     @property
