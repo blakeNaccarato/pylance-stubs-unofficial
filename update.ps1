@@ -3,6 +3,9 @@ function Update-PylanceStubs {
     Update stubs in pylance-stubs-unofficial with the latest from Pylance.
     #>
 
+    # Ensure we're up to date
+    git pull
+
     # Remove existing stubs
     Get-ChildItem -Exclude ('README.md', 'update.ps1', ".vscode") | Remove-Item -Recurse
 
