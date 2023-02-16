@@ -2,7 +2,7 @@
 
 The Pylance extension for VSCode uses `pyright` for type checking, but its type checking results don't always match a vanilla `pyright` installation, such as the kind you might have in your CI. Differences arise from the additional type stubs used by Pylance locally, found in `~/.vscode/extensions/ms-python.vscode-pylance-<RELEASE>/dist` (where `<RELEASE>` is the version of Pylance you have installed).
 
-Most of these differences can be resolved by keeping the contents of the `.../dist/bundled/stubs` directory in a `typings` folder in your project, which is where `pyright` looks for additional type stubs by default. This makes Pylance and vanilla `pyright` *mostly* agree with one another. However, there are still some stubs in `.../dist` besides the ones kept here, and it's not clear the exact fashion in which they are composed by Pylance. So there will still be a few differences that you will need to troubleshoot.
+Most of these differences can be resolved by keeping the contents of the `.../dist/bundled/stubs` directory in a `typings` folder in your project, which is where `pyright` looks for additional type stubs by default. This makes Pylance and vanilla `pyright` _mostly_ agree with one another, see [more detail](#more-detail) some discrepancies remain.
 
 ## Use these stubs
 
@@ -24,7 +24,7 @@ Other clones of the remote will not populate their submodules by default. If you
 git submodule update --init typings
 ```
 
-This will initialize submodules and update them to the *the commit currently being tracked by your project*.
+This will initialize submodules and update them to the _the commit currently being tracked by your project_.
 
 ### Update submodule to track the latest commit
 
@@ -76,7 +76,7 @@ cd typings
 
 ## More detail
 
-This effort reduces dozens of discrepancies to just one or two in one of my repos, using the data science stack and consisting of ~10k lines. I can get CI to go green by putting `# type: ignore` on those few remaining issues as they pop up.
+There are still some stubs in `.../dist` besides the ones kept here, and it's not clear the exact fashion in which they are composed by Pylance. So there will still be a few differences that you will need to troubleshoot. This effort reduces dozens of discrepancies to just one or two in one of my repos, using the data science stack and consisting of ~10k lines. I can get CI to go green by putting `# type: ignore` on those few remaining issues as they pop up.
 
 There is still the occasional line that fails just locally or on CI, or the other way around. Also since I use the `reportUnneccessaryTypeIgnore` check, sometimes a local (necessary!) ignore gets flagged as unnecessary in CI. My solution to that is to disable the `reportUnneccessaryTypeIgnore` check in the entire file where those weird discrepancies pop up (since you can't disable the check line-by-line).
 
