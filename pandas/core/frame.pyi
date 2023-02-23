@@ -94,6 +94,7 @@ from pandas._typing import (
     NaPosition,
     ParquetEngine,
     QuantileInterpolation,
+    RandomState,
     ReadBuffer,
     Renamer,
     ReplaceMethod,
@@ -200,7 +201,6 @@ class _LocIndexerFrame(_LocIndexer):
     ) -> None: ...
 
 class DataFrame(NDFrame, OpsMixin):
-
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
     @overload
@@ -3593,7 +3593,7 @@ ValueError: Index contains duplicate entries, cannot reshape
         frac: float | None = ...,
         replace: _bool = ...,
         weights: _str | ListLike | None = ...,
-        random_state: int | None = ...,
+        random_state: RandomState | None = ...,
         axis: SeriesAxisType | None = ...,
         ignore_index: _bool = ...,
     ) -> DataFrame: ...

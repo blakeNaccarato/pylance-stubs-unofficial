@@ -36,7 +36,10 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 
 from pandas.io.formats.format import EngFormatter
 
@@ -204,12 +207,12 @@ S1 = TypeVar(
     complex,
     Timestamp,
     Timedelta,
-    np.datetime64,
     Period,
     Interval[int],
     Interval[float],
     Interval[Timestamp],
     Interval[Timedelta],
+    CategoricalDtype,
 )
 T1 = TypeVar(
     "T1", str, int, np.int64, np.uint64, np.float64, float, np.dtype[np.generic]
@@ -373,4 +376,13 @@ ValidationOptions: TypeAlias = Literal[
     "many_to_many",
     "m:m",
 ]
+
+RandomState: TypeAlias = Union[
+    int,
+    ArrayLike,
+    np.random.Generator,
+    np.random.BitGenerator,
+    np.random.RandomState,
+]
+
 __all__ = ["npt", "type_t"]
