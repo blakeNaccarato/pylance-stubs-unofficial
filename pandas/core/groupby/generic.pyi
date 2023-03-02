@@ -9,7 +9,6 @@ from typing import (
     Generic,
     Literal,
     NamedTuple,
-    Union,
     overload,
 )
 
@@ -37,7 +36,7 @@ from pandas._typing import (
     Scalar,
 )
 
-AggScalar: TypeAlias = Union[str, Callable[..., Any]]
+AggScalar: TypeAlias = str | Callable[..., Any]
 ScalarResult = ...
 
 class NamedAgg(NamedTuple):
@@ -144,6 +143,8 @@ class SeriesGroupBy(GroupBy, Generic[S1]):
         legend: bool = ...,
         **kwargs,
     ) -> AxesSubplot: ...
+    def idxmax(self, axis: AxisType = ..., skipna: bool = ...) -> Series: ...
+    def idxmin(self, axis: AxisType = ..., skipna: bool = ...) -> Series: ...
 
 class _DataFrameGroupByScalar(DataFrameGroupBy):
     def __iter__(self) -> Iterator[tuple[Scalar, DataFrame]]: ...
@@ -704,7 +705,7 @@ some animals, displayed in three bins
         pass
     def idxmax(
         self, axis: AxisType = ..., skipna: bool = ..., numeric_only: bool = ...
-    ) -> Series:
+    ) -> DataFrame:
         """
 Return index of first occurrence of maximum over requested axis.
 
@@ -772,7 +773,7 @@ dtype: object
         pass
     def idxmin(
         self, axis: AxisType = ..., skipna: bool = ..., numeric_only: bool = ...
-    ) -> Series:
+    ) -> DataFrame:
         """
 Return index of first occurrence of minimum over requested axis.
 

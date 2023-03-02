@@ -17,7 +17,6 @@ from typing import (
     ClassVar,
     Generic,
     Literal,
-    Union,
     overload,
 )
 
@@ -179,7 +178,7 @@ class _LocIndexerSeries(_LocIndexer, Generic[S1]):
     ) -> None: ...
 
 class Series(IndexOpsMixin, NDFrame, Generic[S1]):
-    _ListLike: TypeAlias = Union[ArrayLike, dict[_str, np.ndarray], list, tuple, Index]
+    _ListLike: TypeAlias = ArrayLike | dict[_str, np.ndarray] | list | tuple | Index
     __hash__: ClassVar[None]
 
     @overload
@@ -2883,12 +2882,10 @@ See the :ref:`user guide <basics.reindexing>` for more.
     # ignore needed for mypy as we want different results based on the arguments
     @overload  # type: ignore[override]
     def __and__(  # type: ignore[misc]
-        self, other: bool | list[bool] | np_ndarray_bool | Series[bool]
+        self, other: bool | list[bool] | list[int] | np_ndarray_bool | Series[bool]
     ) -> Series[bool]: ...
     @overload
-    def __and__(
-        self, other: int | list[int] | np_ndarray_anyint | Series[int]
-    ) -> Series[int]: ...
+    def __and__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...
     # def __array__(self, dtype: Optional[_bool] = ...) -> _np_ndarray
     def __div__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
     def __eq__(self, other: object) -> Series[_bool]: ...  # type: ignore[override]
@@ -2917,22 +2914,18 @@ See the :ref:`user guide <basics.reindexing>` for more.
     # ignore needed for mypy as we want different results based on the arguments
     @overload  # type: ignore[override]
     def __or__(  # type: ignore[misc]
-        self, other: bool | list[bool] | np_ndarray_bool | Series[bool]
+        self, other: bool | list[bool] | list[int] | np_ndarray_bool | Series[bool]
     ) -> Series[bool]: ...
     @overload
-    def __or__(
-        self, other: int | list[int] | np_ndarray_anyint | Series[int]
-    ) -> Series[int]: ...
+    def __or__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...
     def __radd__(self, other: num | _str | _ListLike | Series[S1]) -> Series[S1]: ...
     # ignore needed for mypy as we want different results based on the arguments
     @overload  # type: ignore[override]
     def __rand__(  # type: ignore[misc]
-        self, other: bool | list[bool] | np_ndarray_bool | Series[bool]
+        self, other: bool | list[bool] | list[int] | np_ndarray_bool | Series[bool]
     ) -> Series[bool]: ...
     @overload
-    def __rand__(
-        self, other: int | list[int] | np_ndarray_anyint | Series[int]
-    ) -> Series[int]: ...
+    def __rand__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...  # type: ignore[misc]
     def __rdiv__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
     def __rdivmod__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...  # type: ignore[override]
     def __rfloordiv__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
@@ -2943,12 +2936,10 @@ See the :ref:`user guide <basics.reindexing>` for more.
     # ignore needed for mypy as we want different results based on the arguments
     @overload  # type: ignore[override]
     def __ror__(  # type: ignore[misc]
-        self, other: bool | list[bool] | np_ndarray_bool | Series[bool]
+        self, other: bool | list[bool] | list[int] | np_ndarray_bool | Series[bool]
     ) -> Series[bool]: ...
     @overload
-    def __ror__(
-        self, other: int | list[int] | np_ndarray_anyint | Series[int]
-    ) -> Series[int]: ...
+    def __ror__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...  # type: ignore[misc]
     def __rsub__(self, other: num | _ListLike | Series[S1]) -> Series: ...
     @overload
     def __rtruediv__(self, other: TimedeltaSeries) -> Series[float]: ...
@@ -2957,12 +2948,10 @@ See the :ref:`user guide <basics.reindexing>` for more.
     # ignore needed for mypy as we want different results based on the arguments
     @overload  # type: ignore[override]
     def __rxor__(  # type: ignore[misc]
-        self, other: bool | list[bool] | np_ndarray_bool | Series[bool]
+        self, other: bool | list[bool] | list[int] | np_ndarray_bool | Series[bool]
     ) -> Series[bool]: ...
     @overload
-    def __rxor__(
-        self, other: int | list[int] | np_ndarray_anyint | Series[int]
-    ) -> Series[int]: ...
+    def __rxor__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...  # type: ignore[misc]
     @overload
     def __sub__(
         self, other: Timestamp | datetime | TimestampSeries
@@ -2983,12 +2972,10 @@ See the :ref:`user guide <basics.reindexing>` for more.
     # ignore needed for mypy as we want different results based on the arguments
     @overload  # type: ignore[override]
     def __xor__(  # type: ignore[misc]
-        self, other: bool | list[bool] | np_ndarray_bool | Series[bool]
+        self, other: bool | list[bool] | list[int] | np_ndarray_bool | Series[bool]
     ) -> Series[bool]: ...
     @overload
-    def __xor__(
-        self, other: int | list[int] | np_ndarray_anyint | Series[int]
-    ) -> Series[int]: ...
+    def __xor__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...
     def __invert__(self) -> Series[bool]: ...
     # properties
     # @property
@@ -3404,8 +3391,8 @@ class TimestampSeries(Series[Timestamp]):
     def dt(self) -> TimestampProperties: ...  # type: ignore[override]
     def __add__(self, other: TimedeltaSeries | np.timedelta64) -> TimestampSeries: ...  # type: ignore[override]
     def __radd__(self, other: TimedeltaSeries | np.timedelta64) -> TimestampSeries: ...  # type: ignore[override]
-    def __mul__(self, other: int | float | Series[int] | Series[float] | Sequence[int | float]) -> TimestampSeries: ...  # type: ignore[override]
-    def __truediv__(self, other: int | float | Series[int] | Series[float] | Sequence[int | float]) -> TimestampSeries: ...  # type: ignore[override]
+    def __mul__(self, other: float | Series[int] | Series[float] | Sequence[float]) -> TimestampSeries: ...  # type: ignore[override]
+    def __truediv__(self, other: float | Series[int] | Series[float] | Sequence[float]) -> TimestampSeries: ...  # type: ignore[override]
     def mean(  # type: ignore[override]
         self,
         axis: SeriesAxisType | None = ...,
