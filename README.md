@@ -31,7 +31,7 @@ This will initialize submodules and update them to the _the commit currently bei
 You will need to periodically bump your `typings` submodule whenever Pylance releases come out, assuming that I have updated this `pylance-stubs-unofficial` repo to contain the latest stubs.
 
 ```Shell
-git submodule update --init --remote --merge
+git submodule update --init --remote --merge typings
 ```
 
 The `--remote` flag ensures your submodule is updated to track what is presently the `HEAD` of `main` in `pylance-stubs-unofficial`.
