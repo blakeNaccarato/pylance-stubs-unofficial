@@ -19,6 +19,7 @@ from typing import (
 
 import numpy as np
 from numpy import typing as npt
+import pandas as pd
 from pandas.core.arrays import ExtensionArray
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -75,9 +76,93 @@ class FulldatetimeDict(YearMonthDayDict, total=False):
 # dtypes
 NpDtype: TypeAlias = str | np.dtype[np.generic] | type[str | complex | bool | object]
 Dtype: TypeAlias = ExtensionDtype | NpDtype
-AstypeArg: TypeAlias = ExtensionDtype | npt.DTypeLike
-# DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg: TypeAlias = Dtype | dict[Any, Dtype]
+BooleanDtypeArg: TypeAlias = (
+    # Builtin bool type and its string alias
+    type[bool]  # noqa: Y030
+    | Literal["bool"]
+    # Pandas nullable boolean type and its string alias
+    | pd.BooleanDtype
+    | Literal["boolean"]
+    # Numpy bool type
+    | type[np.bool_]
+)
+IntDtypeArg: TypeAlias = (
+    # Builtin integer type and its string alias
+    type[int]  # noqa: Y030
+    | Literal["int"]
+    # Pandas nullable integer types and their string aliases
+    | pd.Int8Dtype
+    | pd.Int16Dtype
+    | pd.Int32Dtype
+    | pd.Int64Dtype
+    | Literal["Int8", "Int16", "Int32", "Int64"]
+    # Numpy signed integer types and their string aliases
+    | type[np.byte]
+    | type[np.int8]
+    | type[np.int16]
+    | type[np.int32]
+    | type[np.int64]
+    | type[np.intp]
+    | Literal["byte", "int8", "int16", "int32", "int64", "intp"]
+    # Numpy unsigned integer types and their string aliases
+    | type[np.ubyte]
+    | type[np.uint8]
+    | type[np.uint16]
+    | type[np.uint32]
+    | type[np.uint64]
+    | type[np.uintp]
+    | Literal["ubyte", "uint8", "uint16", "uint32", "uint64", "uintp"]
+)
+StrDtypeArg: TypeAlias = (
+    # Builtin str type and its string alias
+    type[str]  # noqa: Y030
+    | Literal["str"]
+    # Pandas nullable string type and its string alias
+    | pd.StringDtype
+    | Literal["string"]
+)
+BytesDtypeArg: TypeAlias = type[bytes]
+FloatDtypeArg: TypeAlias = (
+    # Builtin float type and its string alias
+    type[float]  # noqa: Y030
+    | Literal["float"]
+    # Pandas nullable float types and their string aliases
+    | pd.Float32Dtype
+    | pd.Float64Dtype
+    | Literal["Float32", "Float64"]
+    # Numpy float types and their string aliases
+    | type[np.float16]
+    | type[np.float32]
+    | type[np.float64]
+    | Literal["float16", "float32", "float64"]
+)
+ComplexDtypeArg: TypeAlias = (
+    # Builtin complex type and its string alias
+    type[complex]  # noqa: Y030
+    | Literal["complex"]
+    # Numpy complex types and their aliases
+    | type[np.complex64]
+    | type[np.complex128]
+    | Literal["complex64", "complex128"]
+)
+TimedeltaDtypeArg: TypeAlias = Literal["timedelta64[ns]"]
+TimestampDtypeArg: TypeAlias = Literal["datetime64[ns]"]
+CategoryDtypeArg: TypeAlias = Literal["category"]
+
+AstypeArg: TypeAlias = (
+    BooleanDtypeArg
+    | IntDtypeArg
+    | StrDtypeArg
+    | BytesDtypeArg
+    | FloatDtypeArg
+    | ComplexDtypeArg
+    | TimedeltaDtypeArg
+    | TimestampDtypeArg
+    | CategoricalDtype
+    | ExtensionDtype
+)
+# DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeObj: TypeAlias = np.dtype[np.generic] | ExtensionDtype
 
 # filenames and file-like-objects
@@ -113,7 +198,8 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
 
 FilePath: TypeAlias = str | PathLike[str]
 
-Axis: TypeAlias = str | int
+AxisInt: TypeAlias = Literal[0, 1]
+Axis: TypeAlias = AxisInt | Literal["index", "columns", "rows"]
 IndexLabel: TypeAlias = Hashable | Sequence[Hashable]
 Label: TypeAlias = Hashable | None
 Level: TypeAlias = Hashable | int
@@ -239,6 +325,8 @@ IntervalT = TypeVar(
     Interval[Timedelta],
 )
 IntervalClosedType: TypeAlias = Literal["left", "right", "both", "neither"]
+
+TakeIndexer: TypeAlias = Sequence[int] | Sequence[np.integer] | npt.NDArray[np.integer]
 
 IgnoreRaiseCoerce: TypeAlias = Literal["ignore", "raise", "coerce"]
 

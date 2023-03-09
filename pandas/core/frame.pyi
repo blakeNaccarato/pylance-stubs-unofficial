@@ -59,6 +59,7 @@ from pandas._typing import (
     AggFuncTypeFrame,
     AnyArrayLike,
     ArrayLike,
+    AstypeArg,
     Axes,
     Axis,
     AxisType,
@@ -3117,9 +3118,9 @@ ValueError: Index contains duplicate entries, cannot reshape
     ) -> DataFrame: ...
     def astype(
         self,
-        dtype: _str | Dtype | Mapping[HashableT, _str | Dtype] | Series,
+        dtype: AstypeArg | Mapping[Any, Dtype] | Series,
         copy: _bool = ...,
-        errors: _str = ...,
+        errors: IgnoreRaise = ...,
     ) -> DataFrame: ...
     def at_time(
         self,
