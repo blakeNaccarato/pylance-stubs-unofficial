@@ -15,10 +15,7 @@ from typing import (
 )
 
 import numpy as np
-from pandas import (
-    DataFrame,
-    Index,
-)
+from pandas import Index
 from pandas.core.base import PandasObject
 import pandas.core.indexing as indexing
 import sqlalchemy.engine
@@ -27,6 +24,7 @@ from pandas._typing import (
     S1,
     ArrayLike,
     Axis,
+    AxisIndex,
     CompressionOptions,
     CSVQuoting,
     Dtype,
@@ -42,7 +40,6 @@ from pandas._typing import (
     Level,
     NDFrameT,
     ReplaceMethod,
-    SeriesAxisType,
     SortKind,
     StorageOptions,
     T,
@@ -77,9 +74,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def size(self) -> int: ...
     def swapaxes(
-        self, axis1: SeriesAxisType, axis2: SeriesAxisType, copy: _bool = ...
+        self, axis1: AxisIndex, axis2: AxisIndex, copy: _bool = ...
     ) -> NDFrame: ...
-    def droplevel(self, level: Level, axis: SeriesAxisType = ...) -> NDFrame: ...
+    def droplevel(self, level: Level, axis: AxisIndex = ...) -> NDFrame: ...
     def pop(self, item: _str) -> NDFrame: ...
     def squeeze(self, axis=...): ...
     def equals(self, other: Series[S1]) -> _bool: ...
@@ -289,13 +286,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def take(
         self, indices, axis=..., is_copy: _bool | None = ..., **kwargs
     ) -> NDFrame: ...
-    def xs(
-        self,
-        key: Hashable,
-        axis: SeriesAxisType = ...,
-        level: Level | None = ...,
-        drop_level: _bool = ...,
-    ) -> DataFrame | Series: ...
     def __delitem__(self, idx: Hashable): ...
     def get(self, key: object, default: Dtype | None = ...) -> Dtype: ...
     def reindex_like(
@@ -347,7 +337,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def sort_index(
         self,
         *,
-        axis: Literal["columns", "index", 0, 1] = ...,
+        axis: Axis = ...,
         level=...,
         ascending: _bool = ...,
         inplace: _bool = ...,

@@ -146,9 +146,40 @@ ComplexDtypeArg: TypeAlias = (
     | type[np.complex128]
     | Literal["complex64", "complex128"]
 )
-TimedeltaDtypeArg: TypeAlias = Literal["timedelta64[ns]"]
-TimestampDtypeArg: TypeAlias = Literal["datetime64[ns]"]
-CategoryDtypeArg: TypeAlias = Literal["category"]
+# Refer to https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime-units
+TimedeltaDtypeArg: TypeAlias = Literal[
+    "timedelta64[Y]",
+    "timedelta64[M]",
+    "timedelta64[W]",
+    "timedelta64[D]",
+    "timedelta64[h]",
+    "timedelta64[m]",
+    "timedelta64[s]",
+    "timedelta64[ms]",
+    "timedelta64[us]",
+    "timedelta64[μs]",
+    "timedelta64[ns]",
+    "timedelta64[ps]",
+    "timedelta64[fs]",
+    "timedelta64[as]",
+]
+TimestampDtypeArg: TypeAlias = Literal[
+    "datetime64[Y]",
+    "datetime64[M]",
+    "datetime64[W]",
+    "datetime64[D]",
+    "datetime64[h]",
+    "datetime64[m]",
+    "datetime64[s]",
+    "datetime64[ms]",
+    "datetime64[us]",
+    "datetime64[μs]",
+    "datetime64[ns]",
+    "datetime64[ps]",
+    "datetime64[fs]",
+    "datetime64[as]",
+]
+CategoryDtypeArg: TypeAlias = CategoricalDtype | Literal["category"]
 
 AstypeArg: TypeAlias = (
     BooleanDtypeArg
@@ -159,8 +190,9 @@ AstypeArg: TypeAlias = (
     | ComplexDtypeArg
     | TimedeltaDtypeArg
     | TimestampDtypeArg
-    | CategoricalDtype
+    | CategoryDtypeArg
     | ExtensionDtype
+    | type[object]
 )
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeObj: TypeAlias = np.dtype[np.generic] | ExtensionDtype
@@ -198,8 +230,6 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
 
 FilePath: TypeAlias = str | PathLike[str]
 
-AxisInt: TypeAlias = Literal[0, 1]
-Axis: TypeAlias = AxisInt | Literal["index", "columns", "rows"]
 IndexLabel: TypeAlias = Hashable | Sequence[Hashable]
 Label: TypeAlias = Hashable | None
 Level: TypeAlias = Hashable | int
@@ -229,12 +259,9 @@ AggFuncTypeFrame: TypeAlias = (
 )
 
 num: TypeAlias = complex
-SeriesAxisType: TypeAlias = Literal[
-    "index", 0
-]  # Restricted subset of _AxisType for series
-AxisTypeIndex: TypeAlias = Literal["index", 0]
-AxisTypeColumn: TypeAlias = Literal["columns", 1]
-AxisType: TypeAlias = AxisTypeIndex | AxisTypeColumn
+AxisIndex: TypeAlias = Literal["index", 0]
+AxisColumn: TypeAlias = Literal["columns", 1]
+Axis: TypeAlias = AxisIndex | AxisColumn
 DtypeNp = TypeVar("DtypeNp", bound=np.dtype[np.generic])
 KeysArgType: TypeAlias = Any
 ListLike = TypeVar("ListLike", Sequence, np.ndarray, "Series", "Index")

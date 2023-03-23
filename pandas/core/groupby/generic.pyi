@@ -29,7 +29,7 @@ from pandas._typing import (
     S1,
     AggFuncTypeBase,
     AggFuncTypeFrame,
-    AxisType,
+    Axis,
     Level,
     ListLike,
     RandomState,
@@ -92,7 +92,7 @@ class SeriesGroupBy(GroupBy, Generic[S1]):
         fill_method: str = ...,
         limit=...,
         freq=...,
-        axis: AxisType = ...,
+        axis: Axis = ...,
     ) -> Series[float]: ...
     # Overrides and others from original pylance stubs
     @property
@@ -100,10 +100,10 @@ class SeriesGroupBy(GroupBy, Generic[S1]):
     @property
     def is_monotonic_decreasing(self) -> bool: ...
     def bfill(self, limit: int | None = ...) -> Series[S1]: ...
-    def cummax(self, axis: AxisType = ..., **kwargs) -> Series[S1]: ...
-    def cummin(self, axis: AxisType = ..., **kwargs) -> Series[S1]: ...
-    def cumprod(self, axis: AxisType = ..., **kwargs) -> Series[S1]: ...
-    def cumsum(self, axis: AxisType = ..., **kwargs) -> Series[S1]: ...
+    def cummax(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
+    def cummin(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
+    def cumprod(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
+    def cumsum(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
     def ffill(self, limit: int | None = ...) -> Series[S1]: ...
     def first(self, **kwargs) -> Series[S1]: ...
     def head(self, n: int = ...) -> Series[S1]: ...
@@ -143,8 +143,8 @@ class SeriesGroupBy(GroupBy, Generic[S1]):
         legend: bool = ...,
         **kwargs,
     ) -> AxesSubplot: ...
-    def idxmax(self, axis: AxisType = ..., skipna: bool = ...) -> Series: ...
-    def idxmin(self, axis: AxisType = ..., skipna: bool = ...) -> Series: ...
+    def idxmax(self, axis: Axis = ..., skipna: bool = ...) -> Series: ...
+    def idxmin(self, axis: Axis = ..., skipna: bool = ...) -> Series: ...
 
 class _DataFrameGroupByScalar(DataFrameGroupBy):
     def __iter__(self) -> Iterator[tuple[Scalar, DataFrame]]: ...
@@ -429,23 +429,23 @@ The ``subplots=False`` option shows the boxplots in a single figure.
     # These are "properties" but properties can't have all these arguments?!
     def corr(self, method: str | Callable, min_periods: int = ...) -> DataFrame: ...
     def cov(self, min_periods: int = ...) -> DataFrame: ...
-    def diff(self, periods: int = ..., axis: AxisType = ...) -> DataFrame: ...
+    def diff(self, periods: int = ..., axis: Axis = ...) -> DataFrame: ...
     def bfill(self, limit: int | None = ...) -> DataFrame: ...
     def corrwith(
         self,
         other: DataFrame,
-        axis: AxisType = ...,
+        axis: Axis = ...,
         drop: bool = ...,
         method: str = ...,
     ) -> Series: ...
     def cummax(
-        self, axis: AxisType = ..., numeric_only: bool = ..., **kwargs
+        self, axis: Axis = ..., numeric_only: bool = ..., **kwargs
     ) -> DataFrame: ...
     def cummin(
-        self, axis: AxisType = ..., numeric_only: bool = ..., **kwargs
+        self, axis: Axis = ..., numeric_only: bool = ..., **kwargs
     ) -> DataFrame: ...
-    def cumprod(self, axis: AxisType = ..., **kwargs) -> DataFrame: ...
-    def cumsum(self, axis: AxisType = ..., **kwargs) -> DataFrame: ...
+    def cumprod(self, axis: Axis = ..., **kwargs) -> DataFrame: ...
+    def cumsum(self, axis: Axis = ..., **kwargs) -> DataFrame: ...
     def describe(self, **kwargs) -> DataFrame: ...
     def ffill(self, limit: int | None = ...) -> DataFrame: ...
     @overload
@@ -453,7 +453,7 @@ The ``subplots=False`` option shows the boxplots in a single figure.
         self,
         value,
         method: str | None = ...,
-        axis: AxisType = ...,
+        axis: Axis = ...,
         limit: int | None = ...,
         downcast: dict | None = ...,
         *,
@@ -575,7 +575,7 @@ Note that column D is not affected since it is not present in df2.
         self,
         value,
         method: str | None = ...,
-        axis: AxisType = ...,
+        axis: Axis = ...,
         limit: int | None = ...,
         downcast: dict | None = ...,
         *,
@@ -586,7 +586,7 @@ Note that column D is not affected since it is not present in df2.
         self,
         value,
         method: str | None = ...,
-        axis: AxisType = ...,
+        axis: Axis = ...,
         inplace: bool = ...,
         limit: int | None = ...,
         downcast: dict | None = ...,
@@ -704,7 +704,7 @@ some animals, displayed in three bins
         """
         pass
     def idxmax(
-        self, axis: AxisType = ..., skipna: bool = ..., numeric_only: bool = ...
+        self, axis: Axis = ..., skipna: bool = ..., numeric_only: bool = ...
     ) -> DataFrame:
         """
 Return index of first occurrence of maximum over requested axis.
@@ -772,7 +772,7 @@ dtype: object
         """
         pass
     def idxmin(
-        self, axis: AxisType = ..., skipna: bool = ..., numeric_only: bool = ...
+        self, axis: Axis = ..., skipna: bool = ..., numeric_only: bool = ...
     ) -> DataFrame:
         """
 Return index of first occurrence of minimum over requested axis.
@@ -851,7 +851,7 @@ dtype: object
         fill_method: str = ...,
         limit=...,
         freq=...,
-        axis: AxisType = ...,
+        axis: Axis = ...,
     ) -> DataFrame: ...
     def prod(self, numeric_only: bool = ..., min_count: int = ...) -> DataFrame: ...
     def quantile(
@@ -871,13 +871,13 @@ dtype: object
         self,
         periods: int = ...,
         freq: str = ...,
-        axis: AxisType = ...,
+        axis: Axis = ...,
         fill_value=...,
     ) -> DataFrame: ...
     @overload
     def skew(
         self,
-        axis: AxisType = ...,
+        axis: Axis = ...,
         skipna: bool = ...,
         numeric_only: bool = ...,
         *,
@@ -921,7 +921,7 @@ Series or DataFrame (if level specified)
     @overload
     def skew(
         self,
-        axis: AxisType = ...,
+        axis: Axis = ...,
         skipna: bool = ...,
         level: None = ...,
         numeric_only: bool = ...,
@@ -936,7 +936,7 @@ Series or DataFrame (if level specified)
         engine_kwargs=...,
     ) -> DataFrame: ...
     def tail(self, n: int = ...) -> DataFrame: ...
-    def take(self, indices: Sequence, axis: AxisType = ..., **kwargs) -> DataFrame:
+    def take(self, indices: Sequence, axis: Axis = ..., **kwargs) -> DataFrame:
         """
 Return the elements in the given *positional* indices along an axis.
 
@@ -1018,7 +1018,7 @@ starting from the end of the object, just like with Python lists.
 3    lion  mammal       80.5
         """
         pass
-    def tshift(self, periods: int, freq=..., axis: AxisType = ...) -> DataFrame: ...
+    def tshift(self, periods: int, freq=..., axis: Axis = ...) -> DataFrame: ...
     def var(self, ddof: int = ..., numeric_only: bool = ...) -> DataFrame: ...
     @overload
     def value_counts(
