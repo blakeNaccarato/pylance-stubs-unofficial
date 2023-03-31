@@ -7,7 +7,7 @@ function Update-PylanceStubs {
     git pull
 
     # Remove existing stubs
-    Get-ChildItem -Exclude ('README.md', 'update.ps1', ".vscode") | Remove-Item -Recurse
+    Get-ChildItem -Exclude ('README.md', 'update.ps1', '.vscode') | Remove-Item -Recurse
 
     # Get the latest release
     $__ = @{
@@ -18,7 +18,7 @@ function Update-PylanceStubs {
 
     # Copy the stubs
     $source = "$latest_pylance/dist/bundled/stubs"
-    Get-ChildItem $source | Copy-Item -Recurse -Destination $destination
+    Get-ChildItem $source | Copy-Item -Recurse
 
     # Commit, tag, and push
     $version = (($latest_pylance | Split-Path -Leaf) -Split '-')[-1]

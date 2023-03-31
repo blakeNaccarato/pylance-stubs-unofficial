@@ -92,6 +92,7 @@ from pandas._typing import (
     MaskType,
     MergeHow,
     NaPosition,
+    NDFrameT,
     ParquetEngine,
     QuantileInterpolation,
     RandomState,
@@ -160,7 +161,12 @@ class _LocIndexerFrame(_LocIndexer):
         | Callable[[DataFrame], IndexType | MaskType | list[HashableT]]
         | list[HashableT]
         | tuple[
-            IndexType | MaskType | list[HashableT] | Hashable,
+            IndexType
+            | MaskType
+            | list[HashableT]
+            | slice
+            | _IndexSliceTuple
+            | Callable,
             list[HashableT] | slice | Series[bool] | Callable,
         ],
     ) -> DataFrame: ...
@@ -186,6 +192,8 @@ class _LocIndexerFrame(_LocIndexer):
         ]
         | None,
     ) -> Series: ...
+    @overload
+    def __getitem__(self, idx: tuple[Scalar, slice]) -> Series | DataFrame: ...
     @overload
     def __setitem__(
         self,
@@ -596,7 +604,7 @@ Name: population, dtype: int64
     def lookup(self, row_labels: Sequence, col_labels: Sequence) -> np.ndarray: ...
     def align(
         self,
-        other: DataFrame | Series,
+        other: NDFrameT,
         join: JoinHow = ...,
         axis: Axis | None = ...,
         level: Level | None = ...,
@@ -606,7 +614,7 @@ Name: population, dtype: int64
         limit: int | None = ...,
         fill_axis: Axis = ...,
         broadcast_axis: Axis | None = ...,
-    ) -> DataFrame:
+    ) -> tuple[DataFrame, NDFrameT]:
         """
 Align two objects on their axes with the specified join method.
 

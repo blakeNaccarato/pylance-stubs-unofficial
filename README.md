@@ -65,7 +65,9 @@ jobs:
 ...
 ```
 
-## Update stubs yourself, in a pinch
+## How I update these stubs
+
+I update these stubs from the Pylance stubs on my local machine, since I have VSCode installed and Pylance installed locally. The stubs are at `~/.vscode/extensions/ms-python.vscode-pylance<VERSION>/dist/bundled/stubs`, where `<VERSION>` corresponds to the Pylance extension version I have installed. The [script](https://github.com/blakeNaccarato/pylance-stubs-unofficial/blob/main/update.ps1) grabs these stubs and pushes them to this repo under a tag matching the `<VERSION>`, then I manually publish a release in the GitHub UI.
 
 I try to update these stubs weekly. Eventually, I will automate this process in GitHub action so that I don't have to manually push changes. In case this repo falls behind and you need updated stubs, you can use `update.ps1` (in PowerShell) to locally bump your stubs, sourced from your very own Pylance installation. A similar thing could be accomplished in a `bash` script, which I may add if I get around to it. If you'd like to contribute these changes back upstream, feel free to submit a Pull Request (no need to open an Issue ahead of time).
 
@@ -81,3 +83,5 @@ There are still some stubs in `.../dist` besides the ones kept here, and it's no
 There is still the occasional line that fails just locally or on CI, or the other way around. Also since I use the `reportUnneccessaryTypeIgnore` check, sometimes a local (necessary!) ignore gets flagged as unnecessary in CI. My solution to that is to disable the `reportUnneccessaryTypeIgnore` check in the entire file where those weird discrepancies pop up (since you can't disable the check line-by-line).
 
 I suspect that the remaining discrepancies lie in the particular details of stub resolution order by Pylance, regarding the other stubs in `~\.vscode\extensions\ms-python.vscode-pylance-<RELEASE>\dist\`. I only keep the `bundled/stubs` bit updated, because it's not clear how the other stub folders in `dist` are merged/layered. Pyright only has one "layer" of stub finding by default, so Pylance must be doing some magic behind the scenes to compose all the stubs.
+
+I could get my stubs from the upstream source, as the Pylance team gets their stubs from <https://github.com/microsoft/python-type-stubs>. But there is no telling which commit over at <https://github.com/microsoft/python-type-stubs> corresponds to what is bundled in a given Pylance version, and they curate it in a certain way, so I just scrape Pylance's stubs from my local machine whenever it updates.

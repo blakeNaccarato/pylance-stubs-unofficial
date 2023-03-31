@@ -13,6 +13,7 @@ from .image import FigureImage
 from .transforms import BboxBase
 from .axes import Axes
 from .artist import Artist, _finalize_rasterization, allow_rasterization
+from mpl_toolkits.mplot3d import Axes3D
 
 class _AxesStack:
     def __init__(self) -> None: ...
@@ -69,6 +70,8 @@ class FigureBase(Artist):
     frameon = ...
     def add_artist(self, artist: Artist, clip: bool = False) -> Artist: ...
     def add_axes(self, *args, **kwargs) -> Axes: ...
+    @overload
+    def add_subplot(self, projection: Literal['3d'], *args, **kwargs) -> Axes3D: ...
     def add_subplot(self, *args, **kwargs) -> Axes: ...
     @overload
     def subplots(
@@ -97,7 +100,7 @@ class FigureBase(Artist):
     @overload
     def subplots(
         self,
-        nrows: Literal[1],
+        nrows: Literal[1] = ...,
         ncols: Literal[1] = ...,
         *,
         squeeze: Literal[True] = ...,
