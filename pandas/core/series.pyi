@@ -70,7 +70,10 @@ from pandas.core.window.rolling import (
     Rolling,
     Window,
 )
-from typing_extensions import TypeAlias
+from typing_extensions import (
+    Never,
+    TypeAlias,
+)
 import xarray as xr
 
 from pandas._libs.interval import Interval
@@ -1297,7 +1300,7 @@ Name: Data, dtype: int64
     @overload
     def apply(
         self,
-        func: Callable[..., Scalar | Sequence | Mapping],
+        func: Callable[..., Scalar | Sequence | set | Mapping],
         convertDType: _bool = ...,
         args: tuple = ...,
         **kwds,
@@ -3036,16 +3039,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         self, other: Timestamp | datetime | TimestampSeries
     ) -> TimedeltaSeries: ...
     @overload
-    def __sub__(
-        self: Series[Timestamp],
-        other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64,
-    ) -> TimestampSeries: ...
-    @overload
-    def __sub__(
-        self: Series[Timedelta],
-        other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64,
-    ) -> TimedeltaSeries: ...
-    @overload
     def __sub__(self, other: num | _ListLike | Series) -> Series: ...
     def __truediv__(self, other: num | _ListLike | Series[S1]) -> Series: ...
     # ignore needed for mypy as we want different results based on the arguments
@@ -3404,6 +3397,30 @@ See the :ref:`user guide <basics.reindexing>` for more.
         fill_value: float | None = ...,
         axis: AxisIndex | None = ...,
     ) -> Series[S1]: ...
+    # ignore needed because of mypy, for using `Never` as type-var.
+    @overload
+    def sum(
+        self: Series[Never],  # type: ignore[type-var]
+        axis: AxisIndex | None = ...,
+        skipna: _bool | None = ...,
+        level: None = ...,
+        numeric_only: _bool = ...,
+        min_count: int = ...,
+        **kwargs,
+    ) -> Any: ...
+    # ignore needed because of mypy, for overlapping overloads
+    # between `Series[bool]` and `Series[int]`.
+    @overload
+    def sum(  # type: ignore[misc]
+        self: Series[bool],
+        axis: AxisIndex | None = ...,
+        skipna: _bool | None = ...,
+        level: None = ...,
+        numeric_only: _bool = ...,
+        min_count: int = ...,
+        **kwargs,
+    ) -> int: ...
+    @overload
     def sum(
         self: Series[S1],
         axis: AxisIndex | None = ...,
@@ -3470,6 +3487,15 @@ class TimestampSeries(Series[Timestamp]):
     def dt(self) -> TimestampProperties: ...  # type: ignore[override]
     def __add__(self, other: TimedeltaSeries | np.timedelta64) -> TimestampSeries: ...  # type: ignore[override]
     def __radd__(self, other: TimedeltaSeries | np.timedelta64) -> TimestampSeries: ...  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def __sub__(
+        self, other: Timestamp | datetime | TimestampSeries
+    ) -> TimedeltaSeries: ...
+    @overload
+    def __sub__(
+        self,
+        other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64,
+    ) -> TimestampSeries: ...
     def __mul__(self, other: float | Series[int] | Series[float] | Sequence[float]) -> TimestampSeries: ...  # type: ignore[override]
     def __truediv__(self, other: float | Series[int] | Series[float] | Sequence[float]) -> TimestampSeries: ...  # type: ignore[override]
     def mean(  # type: ignore[override]
@@ -3512,7 +3538,7 @@ class TimedeltaSeries(Series[Timedelta]):
     def __mul__(  # type: ignore[override]
         self, other: num | Sequence[num] | Series[int] | Series[float]
     ) -> TimedeltaSeries: ...
-    def __sub__(
+    def __sub__(  # type: ignore[override]
         self, other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64
     ) -> TimedeltaSeries: ...
     def __truediv__(self, other: Timedelta | TimedeltaSeries | np.timedelta64 | TimedeltaIndex) -> Series[float]: ...  # type: ignore[override]
