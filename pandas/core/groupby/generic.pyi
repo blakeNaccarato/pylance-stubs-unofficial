@@ -174,7 +174,7 @@ Aggregate using one or more operations over the specified axis.
 
 Parameters
 ----------
-func : function, str, list or dict
+func : function, str, list, dict or None
     Function to use for aggregating the data. If a function, must either
     work when passed a DataFrame or when passed to DataFrame.apply.
 
@@ -184,6 +184,10 @@ func : function, str, list or dict
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
     - dict of axis labels -> functions, function names or list of such.
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified. Only passing a single function is supported
@@ -214,7 +218,9 @@ engine_kwargs : dict, default None
 
     .. versionadded:: 1.1.0
 **kwargs
-    Keyword arguments to be passed into func.
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
 
 Returns
 -------
@@ -224,10 +230,10 @@ See Also
 --------
 DataFrame.groupby.apply : Apply function func group-wise
     and combine the results together.
-DataFrame.groupby.transform : Aggregate using one or more
-    operations over the specified axis.
-DataFrame.aggregate : Transforms the Series on each group
+DataFrame.groupby.transform : Transforms the Series on each group
     based on the given function.
+DataFrame.aggregate : Aggregate using one or more
+    operations over the specified axis.
 
 Notes
 -----
@@ -374,7 +380,7 @@ subplots : bool
 
 column : column name or list of names, or vector
     Can be any valid input to groupby.
-fontsize : int or str
+fontsize : float or str
 rot : label rotation angle
 grid : Setting this to True will show the grid
 ax : Matplotlib axis object, default None
@@ -390,9 +396,6 @@ backend : str, default None
     ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
     specify the ``plotting.backend`` for the whole session, set
     ``pd.options.plotting.backend``.
-
-    .. versionadded:: 1.0.0
-
 **kwargs
     All other plotting keyword arguments to be passed to
     matplotlib's boxplot function.
@@ -460,7 +463,7 @@ The ``subplots=False`` option shows the boxplots in a single figure.
         inplace: Literal[True],
     ) -> None:
         """
-Fill NA/NaN values using the specified method.
+Fill NA/NaN values using the specified method within groups.
 
 Parameters
 ----------
@@ -469,23 +472,26 @@ value : scalar, dict, Series, or DataFrame
     dict/Series/DataFrame of values specifying which value to use for
     each index (for a Series) or column (for a DataFrame).  Values not
     in the dict/Series/DataFrame will not be filled. This value cannot
-    be a list.
-method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-    Method to use for filling holes in reindexed Series
-    pad / ffill: propagate last valid observation forward to next valid
-    backfill / bfill: use next valid observation to fill gap.
+    be a list. Users wanting to use the ``value`` argument and not ``method``
+    should prefer :meth:`.DataFrame.fillna` as this
+    will produce the same result and be more performant.
+method : {{'bfill', 'ffill', None}}, default None
+    Method to use for filling holes. ``'ffill'`` will propagate
+    the last valid observation forward within a group.
+    ``'bfill'`` will use next valid observation to fill the gap.
 axis : {0 or 'index', 1 or 'columns'}
-    Axis along which to fill missing values. For `Series`
-    this parameter is unused and defaults to 0.
+    Axis along which to fill missing values. When the :class:`DataFrameGroupBy`
+    ``axis`` argument is ``0``, using ``axis=1`` here will produce
+    the same results as :meth:`.DataFrame.fillna`. When the
+    :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
+    or ``axis=1`` here will produce the same results.
 inplace : bool, default False
-    If True, fill in-place. Note: this will modify any
-    other views on this object (e.g., a no-copy slice for a column in a
-    DataFrame).
+    Broken. Do not set to True.
 limit : int, default None
     If method is specified, this is the maximum number of consecutive
-    NaN values to forward/backward fill. In other words, if there is
-    a gap with more than this number of consecutive NaNs, it will only
-    be partially filled. If method is not specified, this is the
+    NaN values to forward/backward fill within a group. In other words,
+    if there is a gap with more than this number of consecutive NaNs,
+    it will only be partially filled. If method is not specified, this is the
     maximum number of entries along the entire axis where NaNs will be
     filled. Must be greater than 0 if not None.
 downcast : dict, default is None
@@ -495,79 +501,77 @@ downcast : dict, default is None
 
 Returns
 -------
-DataFrame or None
-    Object with missing values filled or None if ``inplace=True``.
+DataFrame
+    Object with missing values filled.
 
 See Also
 --------
-interpolate : Fill NaN values using interpolation.
-reindex : Conform object to new index.
-asfreq : Convert TimeSeries to specified frequency.
+ffill : Forward fill values within a group.
+bfill : Backward fill values within a group.
 
 Examples
 --------
->>> df = pd.DataFrame([[np.nan, 2, np.nan, 0],
-...                    [3, 4, np.nan, 1],
-...                    [np.nan, np.nan, np.nan, np.nan],
-...                    [np.nan, 3, np.nan, 4]],
-...                   columns=list("ABCD"))
+>>> df = pd.DataFrame(
+...     {
+...         "key": [0, 0, 1, 1, 1],
+...         "A": [np.nan, 2, np.nan, 3, np.nan],
+...         "B": [2, 3, np.nan, np.nan, np.nan],
+...         "C": [np.nan, np.nan, 2, np.nan, np.nan],
+...     }
+... )
 >>> df
-     A    B   C    D
-0  NaN  2.0 NaN  0.0
-1  3.0  4.0 NaN  1.0
-2  NaN  NaN NaN  NaN
-3  NaN  3.0 NaN  4.0
+   key    A    B   C
+0    0  NaN  2.0 NaN
+1    0  2.0  3.0 NaN
+2    1  NaN  NaN 2.0
+3    1  3.0  NaN NaN
+4    1  NaN  NaN NaN
 
-Replace all NaN elements with 0s.
+Propagate non-null values forward or backward within each group along columns.
 
->>> df.fillna(0)
-     A    B    C    D
-0  0.0  2.0  0.0  0.0
-1  3.0  4.0  0.0  1.0
-2  0.0  0.0  0.0  0.0
-3  0.0  3.0  0.0  4.0
+>>> df.groupby("key").fillna(method="ffill")
+     A    B   C
+0  NaN  2.0 NaN
+1  2.0  3.0 NaN
+2  NaN  NaN 2.0
+3  3.0  NaN 2.0
+4  3.0  NaN 2.0
 
-We can also propagate non-null values forward or backward.
+>>> df.groupby("key").fillna(method="bfill")
+     A    B   C
+0  2.0  2.0 NaN
+1  2.0  3.0 NaN
+2  3.0  NaN 2.0
+3  3.0  NaN NaN
+4  NaN  NaN NaN
 
->>> df.fillna(method="ffill")
-     A    B   C    D
-0  NaN  2.0 NaN  0.0
-1  3.0  4.0 NaN  1.0
-2  3.0  4.0 NaN  1.0
-3  3.0  3.0 NaN  4.0
+Propagate non-null values forward or backward within each group along rows.
 
-Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
-2, and 3 respectively.
+>>> df.groupby([0, 0, 1, 1], axis=1).fillna(method="ffill")
+   key    A    B    C
+0  0.0  0.0  2.0  2.0
+1  0.0  2.0  3.0  3.0
+2  1.0  1.0  NaN  2.0
+3  1.0  3.0  NaN  NaN
+4  1.0  1.0  NaN  NaN
 
->>> values = {"A": 0, "B": 1, "C": 2, "D": 3}
->>> df.fillna(value=values)
-     A    B    C    D
-0  0.0  2.0  2.0  0.0
-1  3.0  4.0  2.0  1.0
-2  0.0  1.0  2.0  3.0
-3  0.0  3.0  2.0  4.0
+>>> df.groupby([0, 0, 1, 1], axis=1).fillna(method="bfill")
+   key    A    B    C
+0  0.0  NaN  2.0  NaN
+1  0.0  2.0  3.0  NaN
+2  1.0  NaN  2.0  2.0
+3  1.0  3.0  NaN  NaN
+4  1.0  NaN  NaN  NaN
 
-Only replace the first NaN element.
+Only replace the first NaN element within a group along rows.
 
->>> df.fillna(value=values, limit=1)
-     A    B    C    D
-0  0.0  2.0  2.0  0.0
-1  3.0  4.0  NaN  1.0
-2  NaN  1.0  NaN  3.0
-3  NaN  3.0  NaN  4.0
-
-When filling using a DataFrame, replacement happens along
-the same column names and same indices
-
->>> df2 = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCE"))
->>> df.fillna(df2)
-     A    B    C    D
-0  0.0  2.0  0.0  0.0
-1  3.0  4.0  0.0  1.0
-2  0.0  0.0  0.0  NaN
-3  0.0  3.0  0.0  4.0
-
-Note that column D is not affected since it is not present in df2.
+>>> df.groupby("key").fillna(method="ffill", limit=1)
+     A    B    C
+0  NaN  2.0  NaN
+1  2.0  3.0  NaN
+2  NaN  NaN  2.0
+3  3.0  NaN  2.0
+4  3.0  NaN  NaN
         """
         pass
     @overload
@@ -669,8 +673,6 @@ backend : str, default None
     specify the ``plotting.backend`` for the whole session, set
     ``pd.options.plotting.backend``.
 
-    .. versionadded:: 1.0.0
-
 legend : bool, default False
     Whether to show the legend.
 
@@ -713,12 +715,16 @@ NA/null values are excluded.
 
 Parameters
 ----------
-axis : {0 or 'index', 1 or 'columns'}, default 0
+axis : {{0 or 'index', 1 or 'columns'}}, default None
     The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+    If axis is not provided, grouper's axis is used.
+
+    .. versionchanged:: 2.0.0
+
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-numeric_only : bool, default True for axis=0, False for axis=1
+numeric_only : bool, default False
     Include only `float`, `int` or `boolean` data.
 
     .. versionadded:: 1.5.0
@@ -781,12 +787,16 @@ NA/null values are excluded.
 
 Parameters
 ----------
-axis : {0 or 'index', 1 or 'columns'}, default 0
+axis : {{0 or 'index', 1 or 'columns'}}, default None
     The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+    If axis is not provided, grouper's axis is used.
+
+    .. versionchanged:: 2.0.0
+
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-numeric_only : bool, default True for axis=0, False for axis=1
+numeric_only : bool, default False
     Include only `float`, `int` or `boolean` data.
 
     .. versionadded:: 1.5.0
@@ -885,37 +895,67 @@ dtype: object
         **kwargs,
     ) -> DataFrame:
         """
-Return unbiased skew over requested axis.
+Return unbiased skew within groups.
 
 Normalized by N-1.
 
 Parameters
 ----------
-axis : {index (0), columns (1)}
+axis : {0 or 'index', 1 or 'columns', None}, default 0
     Axis for the function to be applied on.
-    For `Series` this parameter is unused and defaults to 0.
+
+    Specifying ``axis=None`` will apply the aggregation across both axes.
+
+    .. versionadded:: 2.0.0
+
 skipna : bool, default True
     Exclude NA/null values when computing the result.
-level : int or level name, default None
-    If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a Series.
 
-    .. deprecated:: 1.3.0
-        The level keyword is deprecated. Use groupby instead.
-numeric_only : bool, default None
-    Include only float, int, boolean columns. If None, will attempt to use
-    everything, then use only numeric data. Not implemented for Series.
-
-    .. deprecated:: 1.5.0
-        Specifying ``numeric_only=None`` is deprecated. The default value will be
-        ``False`` in a future version of pandas.
+numeric_only : bool, default False
+    Include only float, int, boolean columns.
 
 **kwargs
     Additional keyword arguments to be passed to the function.
 
 Returns
 -------
-Series or DataFrame (if level specified)
+DataFrame
+
+See Also
+--------
+DataFrame.skew : Return unbiased skew over requested axis.
+
+Examples
+--------
+>>> arrays = [['falcon', 'parrot', 'cockatoo', 'kiwi',
+...            'lion', 'monkey', 'rabbit'],
+...           ['bird', 'bird', 'bird', 'bird',
+...            'mammal', 'mammal', 'mammal']]
+>>> index = pd.MultiIndex.from_arrays(arrays, names=('name', 'class'))
+>>> df = pd.DataFrame({'max_speed': [389.0, 24.0, 70.0, np.nan,
+...                                  80.5, 21.5, 15.0]},
+...                   index=index)
+>>> df
+                max_speed
+name     class
+falcon   bird        389.0
+parrot   bird         24.0
+cockatoo bird         70.0
+kiwi     bird          NaN
+lion     mammal       80.5
+monkey   mammal       21.5
+rabbit   mammal       15.0
+>>> gb = df.groupby(["class"])
+>>> gb.skew()
+        max_speed
+class
+bird     1.628296
+mammal   1.669046
+>>> gb.skew(skipna=False)
+        max_speed
+class
+bird          NaN
+mammal   1.669046
         """
         pass
     @overload
@@ -938,11 +978,15 @@ Series or DataFrame (if level specified)
     def tail(self, n: int = ...) -> DataFrame: ...
     def take(self, indices: Sequence, axis: Axis = ..., **kwargs) -> DataFrame:
         """
-Return the elements in the given *positional* indices along an axis.
+Return the elements in the given *positional* indices in each group.
 
 This means that we are not indexing according to actual values in
 the index attribute of the object. We are indexing according to the
 actual position of the element in the object.
+
+If a requested index does not exist for some group, this method will raise.
+To get similar behavior that ignores indices that don't exist, see
+:meth:`.DataFrameGroupBy.nth`.
 
 Parameters
 ----------
@@ -951,25 +995,18 @@ indices : array-like
 axis : {0 or 'index', 1 or 'columns', None}, default 0
     The axis on which to select elements. ``0`` means that we are
     selecting rows, ``1`` means that we are selecting columns.
-    For `Series` this parameter is unused and defaults to 0.
-is_copy : bool
-    Before pandas 1.0, ``is_copy=False`` can be specified to ensure
-    that the return value is an actual copy. Starting with pandas 1.0,
-    ``take`` always returns a copy, and the keyword is therefore
-    deprecated.
-
-    .. deprecated:: 1.0.0
 **kwargs
     For compatibility with :meth:`numpy.take`. Has no effect on the
     output.
 
 Returns
 -------
-taken : same type as caller
-    An array-like containing the elements taken from the object.
+DataFrame
+    An DataFrame containing the elements taken from each group.
 
 See Also
 --------
+DataFrame.take : Take elements from a Series along an axis.
 DataFrame.loc : Select a subset of a DataFrame by labels.
 DataFrame.iloc : Select a subset of a DataFrame by positions.
 numpy.take : Take elements from an array along an axis.
@@ -979,43 +1016,53 @@ Examples
 >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
 ...                    ('parrot', 'bird', 24.0),
 ...                    ('lion', 'mammal', 80.5),
-...                    ('monkey', 'mammal', np.nan)],
+...                    ('monkey', 'mammal', np.nan),
+...                    ('rabbit', 'mammal', 15.0)],
 ...                   columns=['name', 'class', 'max_speed'],
-...                   index=[0, 2, 3, 1])
+...                   index=[4, 3, 2, 1, 0])
 >>> df
      name   class  max_speed
-0  falcon    bird      389.0
-2  parrot    bird       24.0
-3    lion  mammal       80.5
+4  falcon    bird      389.0
+3  parrot    bird       24.0
+2    lion  mammal       80.5
 1  monkey  mammal        NaN
+0  rabbit  mammal       15.0
+>>> gb = df.groupby([1, 1, 2, 2, 2])
 
-Take elements at positions 0 and 3 along the axis 0 (default).
+Take elements at positions 0 and 1 along the axis 0 (default).
 
-Note how the actual indices selected (0 and 1) do not correspond to
-our selected indices 0 and 3. That's because we are selecting the 0th
-and 3rd rows, not rows whose indices equal 0 and 3.
+Note how the indices selected in the result do not correspond to
+our input indices 0 and 1. That's because we are selecting the 0th
+and 1st rows, not rows whose indices equal 0 and 1.
 
->>> df.take([0, 3])
-     name   class  max_speed
-0  falcon    bird      389.0
-1  monkey  mammal        NaN
+>>> gb.take([0, 1])
+       name   class  max_speed
+1 4  falcon    bird      389.0
+  3  parrot    bird       24.0
+2 2    lion  mammal       80.5
+  1  monkey  mammal        NaN
+
+The order of the specified indices influences the order in the result.
+Here, the order is swapped from the previous example.
+
+>>> gb.take([1, 0])
+       name   class  max_speed
+1 3  parrot    bird       24.0
+  4  falcon    bird      389.0
+2 1  monkey  mammal        NaN
+  2    lion  mammal       80.5
 
 Take elements at indices 1 and 2 along the axis 1 (column selection).
-
->>> df.take([1, 2], axis=1)
-    class  max_speed
-0    bird      389.0
-2    bird       24.0
-3  mammal       80.5
-1  mammal        NaN
 
 We may take elements using negative integers for positive indices,
 starting from the end of the object, just like with Python lists.
 
->>> df.take([-1, -2])
-     name   class  max_speed
-1  monkey  mammal        NaN
-3    lion  mammal       80.5
+>>> gb.take([-1, -2])
+       name   class  max_speed
+1 3  parrot    bird       24.0
+  4  falcon    bird      389.0
+2 0  rabbit  mammal       15.0
+  1  monkey  mammal        NaN
         """
         pass
     def tshift(self, periods: int, freq=..., axis: Axis = ...) -> DataFrame: ...

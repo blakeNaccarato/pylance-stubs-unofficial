@@ -64,17 +64,6 @@ sort : bool, default False
     Sort `uniques` and shuffle `codes` to maintain the
     relationship.
 
-na_sentinel : int or None, default -1
-    Value to mark "not found". If None, will not drop the NaN
-    from the uniques of the values.
-
-    .. deprecated:: 1.5.0
-        The na_sentinel argument is deprecated and
-        will be removed in a future version of pandas. Specify use_na_sentinel as
-        either True or False.
-
-    .. versionchanged:: 1.1.2
-
 use_na_sentinel : bool, default True
     If True, the sentinel -1 will be used for NaN values. If False,
     NaN values will be encoded as non-negative integers and will not drop the
@@ -116,7 +105,7 @@ These examples all show factorize as a top-level method like
 
 >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
 >>> codes
-array([0, 0, 1, 2, 0]...)
+array([0, 0, 1, 2, 0])
 >>> uniques
 array(['b', 'a', 'c'], dtype=object)
 
@@ -125,7 +114,7 @@ shuffled so that the relationship is the maintained.
 
 >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
 >>> codes
-array([1, 1, 0, 2, 1]...)
+array([1, 1, 0, 2, 1])
 >>> uniques
 array(['a', 'b', 'c'], dtype=object)
 
@@ -135,7 +124,7 @@ included in `uniques`.
 
 >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
 >>> codes
-array([ 0, -1,  1,  2,  0]...)
+array([ 0, -1,  1,  2,  0])
 >>> uniques
 array(['b', 'a', 'c'], dtype=object)
 
@@ -146,7 +135,7 @@ will differ. For Categoricals, a `Categorical` is returned.
 >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
 >>> codes, uniques = pd.factorize(cat)
 >>> codes
-array([0, 0, 1]...)
+array([0, 0, 1])
 >>> uniques
 ['a', 'c']
 Categories (3, object): ['a', 'b', 'c']
@@ -160,7 +149,7 @@ returned.
 >>> cat = pd.Series(['a', 'a', 'c'])
 >>> codes, uniques = pd.factorize(cat)
 >>> codes
-array([0, 0, 1]...)
+array([0, 0, 1])
 >>> uniques
 Index(['a', 'c'], dtype='object')
 

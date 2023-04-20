@@ -656,7 +656,7 @@ broadcast_axis : {0 or 'index', 1 or 'columns'}, default None
 
 Returns
 -------
-(left, right) : (DataFrame, type of other)
+tuple of (DataFrame, type of other)
     Aligned objects.
 
 Examples
@@ -739,7 +739,7 @@ Finally, the default `axis=None` will align on both index and columns:
         tolerance: float | None = ...,
     ) -> DataFrame:
         """
-Conform Series/DataFrame to new index with optional filling logic.
+Conform DataFrame to new index with optional filling logic.
 
 Places NA/NaN in locations having no value in the previous index. A new object
 is produced unless the new index is equivalent to the current one and
@@ -748,10 +748,17 @@ is produced unless the new index is equivalent to the current one and
 Parameters
 ----------
 
-keywords for axes : array-like, optional
-    New labels / index to conform to, should be specified using
-    keywords. Preferably an Index object to avoid duplicating data.
-
+labels : array-like, optional
+    New labels / index to conform the axis specified by 'axis' to.
+index : array-like, optional
+    New labels for the index. Preferably an Index object to avoid
+    duplicating data.
+columns : array-like, optional
+    New labels for the columns. Preferably an Index object to avoid
+    duplicating data.
+axis : int or str, optional
+    Axis to target. Can be either the axis name ('index', 'columns')
+    or number (0, 1).
 method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
     Method to use for filling holes in reindexed DataFrame.
     Please note: this is only applicable to DataFrames/Series with a
@@ -786,7 +793,7 @@ tolerance : optional
 
 Returns
 -------
-Series/DataFrame with changed index.
+DataFrame with changed index.
 
 See Also
 --------
@@ -1035,10 +1042,12 @@ value : scalar, dict, Series, or DataFrame
     each index (for a Series) or column (for a DataFrame).  Values not
     in the dict/Series/DataFrame will not be filled. This value cannot
     be a list.
-method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-    Method to use for filling holes in reindexed Series
-    pad / ffill: propagate last valid observation forward to next valid
-    backfill / bfill: use next valid observation to fill gap.
+method : {'backfill', 'bfill', 'ffill', None}, default None
+    Method to use for filling holes in reindexed Series:
+
+    * ffill: propagate last valid observation forward to next valid.
+    * backfill / bfill: use next valid observation to fill gap.
+
 axis : {0 or 'index', 1 or 'columns'}
     Axis along which to fill missing values. For `Series`
     this parameter is unused and defaults to 0.
@@ -1251,9 +1260,6 @@ regex : bool or same types as `to_replace`, default False
 method : {'pad', 'ffill', 'bfill'}
     The method to use when for replacement, when `to_replace` is a
     scalar, list or tuple and `value` is ``None``.
-
-    .. versionchanged:: 0.23.0
-        Added to DataFrame.
 
 Returns
 -------
@@ -1532,8 +1538,6 @@ See Also
 Index.shift : Shift values of Index.
 DatetimeIndex.shift : Shift values of DatetimeIndex.
 PeriodIndex.shift : Shift values of PeriodIndex.
-tshift : Shift the time index, using the index's frequency if
-    available.
 
 Examples
 --------
@@ -1685,10 +1689,10 @@ Examples
 Show which entries in a DataFrame are NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -1748,10 +1752,10 @@ Examples
 Show which entries in a DataFrame are NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -1809,10 +1813,10 @@ Examples
 Show which entries in a DataFrame are not NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -1872,10 +1876,10 @@ Examples
 Show which entries in a DataFrame are not NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -1965,13 +1969,13 @@ Sort by the values along either axis.
 
 Parameters
 ----------
-        by : str or list of str
-            Name or list of names to sort by.
+by : str or list of str
+    Name or list of names to sort by.
 
-            - if `axis` is 0 or `'index'` then `by` may contain index
-              levels and/or column labels.
-            - if `axis` is 1 or `'columns'` then `by` may contain column
-              levels and/or index labels.
+    - if `axis` is 0 or `'index'` then `by` may contain index
+      levels and/or column labels.
+    - if `axis` is 1 or `'columns'` then `by` may contain column
+      levels and/or index labels.
 axis : {0 or 'index', 1 or 'columns'}, default 0
      Axis to be sorted.
 ascending : bool or list of bool, default True
@@ -1990,9 +1994,6 @@ na_position : {'first', 'last'}, default 'last'
      end.
 ignore_index : bool, default False
      If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-     .. versionadded:: 1.0.0
-
 key : callable, optional
     Apply the key function to the values
     before sorting. This is similar to the `key` argument in the
@@ -2101,8 +2102,8 @@ using the `natsort <https://github.com/SethMMorton/natsort>` package.
 4   96hr     50
 >>> from natsort import index_natsorted
 >>> df.sort_values(
-...    by="time",
-...    key=lambda x: np.argsort(index_natsorted(df["time"]))
+...     by="time",
+...     key=lambda x: np.argsort(index_natsorted(df["time"]))
 ... )
     time  value
 0    0hr     10
@@ -2183,9 +2184,6 @@ sort_remaining : bool, default True
     levels too (in order) after sorting by specified level.
 ignore_index : bool, default False
     If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-    .. versionadded:: 1.0.0
-
 key : callable, optional
     If not None, apply the key function to the index values
     before sorting. This is similar to the `key` argument in the
@@ -2341,7 +2339,7 @@ groups.
 
 Parameters
 ----------
-by : mapping, function, label, or list of labels
+by : mapping, function, label, pd.Grouper or list of such
     Used to determine the groups for the groupby.
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
@@ -2366,25 +2364,29 @@ sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
-group_keys : bool, optional
+
+    .. versionchanged:: 2.0.0
+
+        Specifying ``sort=False`` with an ordered categorical grouper will no
+        longer sort the values.
+
+group_keys : bool, default True
     When calling apply and the ``by`` argument produces a like-indexed
     (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
-    are included otherwise. This argument has no effect if the result produced
-    is not like-indexed with respect to the input.
+    are included otherwise.
 
     .. versionchanged:: 1.5.0
 
-       Warns that `group_keys` will no longer be ignored when the
+       Warns that ``group_keys`` will no longer be ignored when the
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
-squeeze : bool, default False
-    Reduce the dimensionality of the return type if possible,
-    otherwise return a consistent type.
 
-    .. deprecated:: 1.1.0
+    .. versionchanged:: 2.0.0
+
+       ``group_keys`` now defaults to ``True``.
 
 observed : bool, default False
     This only applies if any of the groupers are Categoricals.
@@ -2547,18 +2549,18 @@ columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
 
 Parameters
 ----------
+columns : str or object or a list of str
+    Column to use to make new frame's columns.
+
+    .. versionchanged:: 1.1.0
+       Also accept list of columns names.
+
 index : str or object or a list of str, optional
     Column to use to make new frame's index. If None, uses
     existing index.
 
     .. versionchanged:: 1.1.0
        Also accept list of index names.
-
-columns : str or object or a list of str
-    Column to use to make new frame's columns.
-
-    .. versionchanged:: 1.1.0
-       Also accept list of columns names.
 
 values : str, object or a list of the previous, optional
     Column(s) to use for populating new frame's values. If not
@@ -2644,14 +2646,14 @@ You could also assign a list of column names or a list of index names.
 4   2    1    1    5    4
 5   2    2    2    6    5
 
->>> df.pivot(index="lev1", columns=["lev2", "lev3"],values="values")
+>>> df.pivot(index="lev1", columns=["lev2", "lev3"], values="values")
 lev2    1         2
 lev3    1    2    1    2
 lev1
 1     0.0  1.0  2.0  NaN
 2     4.0  3.0  NaN  5.0
 
->>> df.pivot(index=["lev1", "lev2"], columns=["lev3"],values="values")
+>>> df.pivot(index=["lev1", "lev2"], columns=["lev3"], values="values")
       lev3    1    2
 lev1  lev2
    1     1  0.0  1.0

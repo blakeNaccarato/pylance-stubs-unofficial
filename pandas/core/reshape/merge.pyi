@@ -55,7 +55,7 @@ allowed.
 
 Parameters
 ----------
-left : DataFrame
+left : DataFrame or named Series
 right : DataFrame or named Series
     Object to merge with.
 how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'

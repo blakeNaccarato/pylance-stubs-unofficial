@@ -127,18 +127,18 @@ columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
 Parameters
 ----------
 data : DataFrame
+columns : str or object or a list of str
+    Column to use to make new frame's columns.
+
+    .. versionchanged:: 1.1.0
+       Also accept list of columns names.
+
 index : str or object or a list of str, optional
     Column to use to make new frame's index. If None, uses
     existing index.
 
     .. versionchanged:: 1.1.0
        Also accept list of index names.
-
-columns : str or object or a list of str
-    Column to use to make new frame's columns.
-
-    .. versionchanged:: 1.1.0
-       Also accept list of columns names.
 
 values : str, object or a list of the previous, optional
     Column(s) to use for populating new frame's values. If not
@@ -224,14 +224,14 @@ You could also assign a list of column names or a list of index names.
 4   2    1    1    5    4
 5   2    2    2    6    5
 
->>> df.pivot(index="lev1", columns=["lev2", "lev3"],values="values")
+>>> df.pivot(index="lev1", columns=["lev2", "lev3"], values="values")
 lev2    1         2
 lev3    1    2    1    2
 lev1
 1     0.0  1.0  2.0  NaN
 2     4.0  3.0  NaN  5.0
 
->>> df.pivot(index=["lev1", "lev2"], columns=["lev3"],values="values")
+>>> df.pivot(index=["lev1", "lev2"], columns=["lev3"], values="values")
       lev3    1    2
 lev1  lev2
    1     1  0.0  1.0

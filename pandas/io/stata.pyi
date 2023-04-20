@@ -97,8 +97,8 @@ compression : str or dict, default 'infer'
     custom compression dictionary:
     ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files.
 storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -129,9 +129,9 @@ Examples
 --------
 
 Creating a dummy stata for this example
->>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
-...                              'parrot'],
-...                   'speed': [350, 18, 361, 15]})  # doctest: +SKIP
+
+>>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
+...                     'speed': [350, 18, 361, 15]})  # doctest: +SKIP
 >>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
@@ -139,14 +139,15 @@ Read a Stata dta file:
 >>> df = pd.read_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file in 10,000 line chunks:
+
 >>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")  # doctest: +SKIP
 >>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
 >>> df.to_stata('filename.dta')  # doctest: +SKIP
 
->>> itr = pd.read_stata('filename.dta', chunksize=10000)  # doctest: +SKIP
->>> for chunk in itr:
-...    # Operate on a single chunk, e.g., chunk.mean()
-...    pass  # doctest: +SKIP
+>>> with pd.read_stata('filename.dta', chunksize=10000) as itr: # doctest: +SKIP
+>>>     for chunk in itr:
+...         # Operate on a single chunk, e.g., chunk.mean()
+...         pass  # doctest: +SKIP
     """
     pass
 @overload

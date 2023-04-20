@@ -363,20 +363,13 @@ axis : {0 or 'index', 1 or 'columns', None}, default 0
     The axis on which to select elements. ``0`` means that we are
     selecting rows, ``1`` means that we are selecting columns.
     For `Series` this parameter is unused and defaults to 0.
-is_copy : bool
-    Before pandas 1.0, ``is_copy=False`` can be specified to ensure
-    that the return value is an actual copy. Starting with pandas 1.0,
-    ``take`` always returns a copy, and the keyword is therefore
-    deprecated.
-
-    .. deprecated:: 1.0.0
 **kwargs
     For compatibility with :meth:`numpy.take`. Has no effect on the
     output.
 
 Returns
 -------
-taken : same type as caller
+same type as caller
     An array-like containing the elements taken from the object.
 
 See Also
@@ -612,7 +605,7 @@ groups.
 
 Parameters
 ----------
-by : mapping, function, label, or list of labels
+by : mapping, function, label, pd.Grouper or list of such
     Used to determine the groups for the groupby.
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
@@ -637,25 +630,29 @@ sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
-group_keys : bool, optional
+
+    .. versionchanged:: 2.0.0
+
+        Specifying ``sort=False`` with an ordered categorical grouper will no
+        longer sort the values.
+
+group_keys : bool, default True
     When calling apply and the ``by`` argument produces a like-indexed
     (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
-    are included otherwise. This argument has no effect if the result produced
-    is not like-indexed with respect to the input.
+    are included otherwise.
 
     .. versionchanged:: 1.5.0
 
-       Warns that `group_keys` will no longer be ignored when the
+       Warns that ``group_keys`` will no longer be ignored when the
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
-squeeze : bool, default False
-    Reduce the dimensionality of the return type if possible,
-    otherwise return a consistent type.
 
-    .. deprecated:: 1.1.0
+    .. versionchanged:: 2.0.0
+
+       ``group_keys`` now defaults to ``True``.
 
 observed : bool, default False
     This only applies if any of the groupers are Categoricals.
@@ -1367,7 +1364,7 @@ broadcast_axis : {0 or 'index'}, default None
 
 Returns
 -------
-(left, right) : (Series, type of other)
+tuple of (Series, type of other)
     Aligned objects.
 
 Examples
@@ -1546,10 +1543,12 @@ value : scalar, dict, Series, or DataFrame
     each index (for a Series) or column (for a DataFrame).  Values not
     in the dict/Series/DataFrame will not be filled. This value cannot
     be a list.
-method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-    Method to use for filling holes in reindexed Series
-    pad / ffill: propagate last valid observation forward to next valid
-    backfill / bfill: use next valid observation to fill gap.
+method : {'backfill', 'bfill', 'ffill', None}, default None
+    Method to use for filling holes in reindexed Series:
+
+    * ffill: propagate last valid observation forward to next valid.
+    * backfill / bfill: use next valid observation to fill gap.
+
 axis : {0 or 'index'}
     Axis along which to fill missing values. For `Series`
     this parameter is unused and defaults to 0.
@@ -1761,9 +1760,6 @@ regex : bool or same types as `to_replace`, default False
 method : {'pad', 'ffill', 'bfill'}
     The method to use when for replacement, when `to_replace` is a
     scalar, list or tuple and `value` is ``None``.
-
-    .. versionchanged:: 0.23.0
-        Added to DataFrame.
 
 Returns
 -------
@@ -2042,8 +2038,6 @@ See Also
 Index.shift : Shift values of Index.
 DatetimeIndex.shift : Shift values of DatetimeIndex.
 PeriodIndex.shift : Shift values of PeriodIndex.
-tshift : Shift the time index, using the index's frequency if
-    available.
 
 Examples
 --------
@@ -2137,10 +2131,10 @@ Examples
 Show which entries in a DataFrame are NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -2200,10 +2194,10 @@ Examples
 Show which entries in a DataFrame are NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -2261,10 +2255,10 @@ Examples
 Show which entries in a DataFrame are not NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -2324,10 +2318,10 @@ Examples
 Show which entries in a DataFrame are not NA.
 
 >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-...                          pd.Timestamp('1940-04-25')],
-...                    name=['Alfred', 'Batman', ''],
-...                    toy=[None, 'Batmobile', 'Joker']))
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
 >>> df
    age       born    name        toy
 0  5.0        NaT  Alfred       None
@@ -2414,7 +2408,7 @@ dtype: bool
     def droplevel(
         self, level: Level | list[Level], axis: AxisIndex = ...
     ) -> DataFrame: ...
-    def pop(self, item: _str) -> Series[S1]: ...
+    def pop(self, item: Hashable) -> S1: ...
     def squeeze(self, axis: AxisIndex | None = ...) -> Scalar: ...
     def __abs__(self) -> Series[S1]: ...
     def add_prefix(self, prefix: _str) -> Series[S1]: ...
@@ -2440,9 +2434,10 @@ Parameters
 ----------
 
 index : array-like, optional
-    New labels / index to conform to, should be specified using
-    keywords. Preferably an Index object to avoid duplicating data.
-
+    New labels for the index. Preferably an Index object to avoid
+    duplicating data.
+axis : int or str, optional
+    Unused.
 method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
     Method to use for filling holes in reindexed DataFrame.
     Please note: this is only applicable to DataFrames/Series with a

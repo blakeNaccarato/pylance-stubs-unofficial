@@ -23,7 +23,6 @@ from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
 )
-from pandas.core.indexes.numeric import NumericIndex
 from pandas.core.strings import StringMethods
 from typing_extensions import (
     Never,
@@ -74,12 +73,35 @@ class Index(IndexOpsMixin, PandasObject):
     def __new__(
         cls,
         data: Iterable,
-        dtype: Literal["float", "int", "complex"] | type_t[complex] | type_t[np.number],
+        dtype: Literal["int"] | type_t[int] | type_t[np.integer],
         copy: bool = ...,
         name=...,
         tupleize_cols: bool = ...,
         **kwargs,
-    ) -> NumericIndex: ...
+    ) -> _IntIndexType: ...
+    @overload
+    def __new__(
+        cls,
+        data: Iterable,
+        dtype: Literal["float"]
+        | type_t[float]
+        | type_t[np.float32]
+        | type_t[np.float64],
+        copy: bool = ...,
+        name=...,
+        tupleize_cols: bool = ...,
+        **kwargs,
+    ) -> _FloatIndexType: ...
+    @overload
+    def __new__(
+        cls,
+        data: Iterable,
+        dtype: Literal["complex"] | type_t[complex],
+        copy: bool = ...,
+        name=...,
+        tupleize_cols: bool = ...,
+        **kwargs,
+    ) -> _ComplexIndexType: ...
     @overload
     def __new__(
         cls,
@@ -161,13 +183,21 @@ Index
         """
 Return a boolean if the values are equal or increasing.
 
+Returns
+-------
+bool
+
+See Also
+--------
+Index.is_monotonic_decreasing : Check if the values are equal or decreasing.
+
 Examples
 --------
->>> Index([1, 2, 3]).is_monotonic_increasing
+>>> pd.Index([1, 2, 3]).is_monotonic_increasing
 True
->>> Index([1, 2, 2]).is_monotonic_increasing
+>>> pd.Index([1, 2, 2]).is_monotonic_increasing
 True
->>> Index([1, 3, 2]).is_monotonic_increasing
+>>> pd.Index([1, 3, 2]).is_monotonic_increasing
 False
         """
         pass
@@ -297,3 +327,19 @@ def ensure_index_from_sequences(
 ) -> Index: ...
 def ensure_index(index_like: Sequence | Index, copy: bool = ...) -> Index: ...
 def maybe_extract_name(name, obj, cls) -> Label: ...
+
+class _NumericIndexType(Index):
+    def __add__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __radd__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __sub__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __rsub__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __mul__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __rmul__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __truediv__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __rtruediv__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __floordiv__(self, other: _NumericIndexType | complex) -> Self: ...
+    def __rfloordiv__(self, other: _NumericIndexType | complex) -> Self: ...
+
+class _FloatIndexType(_NumericIndexType): ...
+class _IntIndexType(_NumericIndexType): ...
+class _ComplexIndexType(_NumericIndexType): ...

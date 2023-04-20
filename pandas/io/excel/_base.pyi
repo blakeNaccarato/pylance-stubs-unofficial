@@ -22,8 +22,10 @@ from xlrd.book import Book
 from pandas._typing import (
     Dtype,
     FilePath,
+    ListLikeHashable,
     ReadBuffer,
     StorageOptions,
+    UsecolsArgType,
     WriteExcelBuffer,
 )
 
@@ -40,9 +42,9 @@ def read_excel(
     sheet_name: list[int | str] | None,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
+    names: ListLikeHashable | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols: Sequence[int] | Sequence[str] | Callable[[str], bool] | None = ...,
+    usecols: str | UsecolsArgType = ...,
     dtype: str | Dtype | Mapping[str, str | Dtype] | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: Mapping[int | str, Callable[[object], object]] | None = ...,
@@ -129,12 +131,6 @@ usecols : str, list-like, or callable, default None
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
-squeeze : bool, default False
-    If the parsed data only contains one column then return a Series.
-
-    .. deprecated:: 1.4.0
-       Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
-       the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -189,8 +185,8 @@ na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '', '#N/A', '#N/A N/A', '#NA', '-1.#IND', '-1.#QNAN', '-NaN', '-nan',
-    '1.#IND', '1.#QNAN', '<NA>', 'N/A', 'NA', 'NULL', 'NaN', 'n/a',
-    'nan', 'null'.
+    '1.#IND', '1.#QNAN', '<NA>', 'N/A', 'NA', 'NULL', 'NaN', 'None',
+    'n/a', 'nan', 'null'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
     Depending on whether `na_values` is passed in, the behavior is as follows:
@@ -239,6 +235,16 @@ date_parser : function, optional
     and pass that; and 3) call `date_parser` once for each row using one or
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
+
+    .. deprecated:: 2.0.0
+       Use ``date_format`` instead, or read in as ``object`` and then apply
+       :func:`to_datetime` as-needed.
+date_format : str or dict of column -> format, default ``None``
+   If used in conjunction with ``parse_dates``, will parse dates according to this
+   format. For anything more complex,
+   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+
+   .. versionadded:: 2.0.0
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
@@ -258,23 +264,6 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
-convert_float : bool, default True
-    Convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
-    data will be read in as floats: Excel stores all numbers as floats
-    internally.
-
-    .. deprecated:: 1.3.0
-        convert_float will be removed in a future version
-
-mangle_dupe_cols : bool, default True
-    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
-
-    .. deprecated:: 1.5.0
-        Not implemented, and a new argument to specify the pattern for the
-        names of duplicated columns will be added instead
-
 storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -286,6 +275,16 @@ storage_options : dict, optional
     highlight=storage_options#reading-writing-remote-files>`_.
 
     .. versionadded:: 1.2.0
+
+dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+    arrays, nullable dtypes are used for all dtypes that have a nullable
+    implementation when "numpy_nullable" is set, pyarrow is used for all
+    dtypes if "pyarrow" is set.
+
+    The dtype_backends are still experimential.
+
+    .. versionadded:: 2.0
 
 Returns
 -------
@@ -368,9 +367,9 @@ def read_excel(
     sheet_name: int | str = ...,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
+    names: ListLikeHashable | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols: Sequence[int] | Sequence[str] | Callable[[str], bool] | None = ...,
+    usecols: str | UsecolsArgType = ...,
     dtype: str | Dtype | Mapping[str, str | Dtype] | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: Mapping[int | str, Callable[[object], object]] | None = ...,
@@ -445,13 +444,9 @@ class ExcelFile:
         self,
         sheet_name: list[int | str] | None,
         header: int | Sequence[int] | None = ...,
-        names: list[str] | None = ...,
+        names: ListLikeHashable | None = ...,
         index_col: int | Sequence[int] | None = ...,
-        usecols: str
-        | Sequence[int]
-        | Sequence[str]
-        | Callable[[str], bool]
-        | None = ...,
+        usecols: str | UsecolsArgType = ...,
         converters: dict[int | str, Callable[[object], object]] | None = ...,
         true_values: Iterable[Hashable] | None = ...,
         false_values: Iterable[Hashable] | None = ...,
@@ -475,13 +470,9 @@ class ExcelFile:
         self,
         sheet_name: int | str,
         header: int | Sequence[int] | None = ...,
-        names: list[str] | None = ...,
+        names: ListLikeHashable | None = ...,
         index_col: int | Sequence[int] | None = ...,
-        usecols: str
-        | Sequence[int]
-        | Sequence[str]
-        | Callable[[str], bool]
-        | None = ...,
+        usecols: str | UsecolsArgType = ...,
         converters: dict[int | str, Callable[[object], object]] | None = ...,
         true_values: Iterable[Hashable] | None = ...,
         false_values: Iterable[Hashable] | None = ...,
