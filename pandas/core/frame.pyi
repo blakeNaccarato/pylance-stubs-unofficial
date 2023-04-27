@@ -316,32 +316,61 @@ Name: population, dtype: int64
     @overload
     def to_dict(
         self,
-        orient: Literal["dict", "list", "series", "split", "tight", "index"],
+        orient: Literal["records"],
         into: Mapping | type[Mapping],
-    ) -> Mapping[Hashable, Any]: ...
-    @overload
-    def to_dict(
-        self,
-        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-        *,
-        into: Mapping | type[Mapping],
-    ) -> Mapping[Hashable, Any]: ...
-    @overload
-    def to_dict(
-        self,
-        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-        into: None = ...,
-    ) -> dict[Hashable, Any]: ...
+        index: Literal[True] = ...,
+    ) -> list[Mapping[Hashable, Any]]: ...
     @overload
     def to_dict(
         self,
         orient: Literal["records"],
-        into: Mapping | type[Mapping],
-    ) -> list[Mapping[Hashable, Any]]: ...
+        into: None = ...,
+        index: Literal[True] = ...,
+    ) -> list[dict[Hashable, Any]]: ...
     @overload
     def to_dict(
-        self, orient: Literal["records"], into: None = ...
-    ) -> list[dict[Hashable, Any]]: ...
+        self,
+        orient: Literal["dict", "list", "series", "index"],
+        into: Mapping | type[Mapping],
+        index: Literal[True] = ...,
+    ) -> Mapping[Hashable, Any]: ...
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["split", "tight"],
+        into: Mapping | type[Mapping],
+        index: bool = ...,
+    ) -> Mapping[Hashable, Any]: ...
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["dict", "list", "series", "index"] = ...,
+        *,
+        into: Mapping | type[Mapping],
+        index: Literal[True] = ...,
+    ) -> Mapping[Hashable, Any]: ...
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["split", "tight"] = ...,
+        *,
+        into: Mapping | type[Mapping],
+        index: bool = ...,
+    ) -> Mapping[Hashable, Any]: ...
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["dict", "list", "series", "index"] = ...,
+        into: None = ...,
+        index: Literal[True] = ...,
+    ) -> dict[Hashable, Any]: ...
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["split", "tight"] = ...,
+        into: None = ...,
+        index: bool = ...,
+    ) -> dict[Hashable, Any]: ...
     def to_gbq(
         self,
         destination_table: str,
@@ -3079,8 +3108,8 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: Level | None = ...,
         fill_value: float | None = ...,
     ) -> DataFrame: ...
-    def add_prefix(self, prefix: _str) -> DataFrame: ...
-    def add_suffix(self, suffix: _str) -> DataFrame: ...
+    def add_prefix(self, prefix: _str, axis: Axis | None = None) -> DataFrame: ...
+    def add_suffix(self, suffix: _str, axis: Axis | None = None) -> DataFrame: ...
     @overload
     def all(
         self,
