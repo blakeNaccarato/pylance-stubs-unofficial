@@ -6,6 +6,10 @@ Most of these differences can be resolved by keeping the contents of the `.../di
 
 ## Use these stubs
 
+The following process will mostly align the behaviors of `pyright` running in CI with a local Pylance install by providing similar type stubs to your CI in the form of a submodule.
+
+Please note that these stubs, mirrored from Pylance, inherently lag the latest stubs from upstream sources by a week or more. If you encounter a bug related to any type stubs, consider manually pulling the latest stubs from the related upstream source and checking again before opening an issue. In the case of [pandas-dev/pandas-stubs](https://github.com/pandas-dev/pandas-stubs), it is recommended that you `pip install pandas-stubs~=#.#.#` where `#.#.#` corresponds to your project's Pandas version.
+
 ### Add the submodule for the first time in a project
 
 Add this repository as a submodule to the `typings` folder where `pyright` expects it to be.
