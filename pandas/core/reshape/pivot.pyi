@@ -134,8 +134,7 @@ columns : str or object or a list of str
        Also accept list of columns names.
 
 index : str or object or a list of str, optional
-    Column to use to make new frame's index. If None, uses
-    existing index.
+    Column to use to make new frame's index. If not given, uses existing index.
 
     .. versionchanged:: 1.1.0
        Also accept list of index names.
