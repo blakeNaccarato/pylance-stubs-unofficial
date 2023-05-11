@@ -19,8 +19,10 @@ import pyxlsb.workbook
 from typing_extensions import Self
 from xlrd.book import Book
 
+from pandas._libs.lib import NoDefault
 from pandas._typing import (
     Dtype,
+    DtypeBackend,
     FilePath,
     ListLikeHashable,
     ReadBuffer,
@@ -66,6 +68,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    dtype_backend: DtypeBackend | NoDefault = ...,
 ) -> dict[int | str, DataFrame]:
     """
 Read an Excel file into a pandas DataFrame.
@@ -391,6 +394,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    dtype_backend: DtypeBackend | NoDefault = ...,
 ) -> DataFrame: ...
 
 class ExcelWriter:
