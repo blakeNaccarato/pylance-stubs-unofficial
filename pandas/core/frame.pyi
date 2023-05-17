@@ -20,18 +20,22 @@ from typing import (
 from matplotlib.axes import Axes as PlotAxes
 import numpy as np
 from pandas import (
+    Period,
     Timedelta,
     Timestamp,
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.generic import NDFrame
-from pandas.core.groupby.generic import (
-    _DataFrameGroupByNonScalar,
-    _DataFrameGroupByScalar,
-)
+from pandas.core.groupby.generic import DataFrameGroupBy
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexers import BaseIndexer
 from pandas.core.indexes.base import Index
+from pandas.core.indexes.category import CategoricalIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.interval import IntervalIndex
+from pandas.core.indexes.multi import MultiIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import (
     _iLocIndexer,
     _IndexSliceTuple,
@@ -82,6 +86,7 @@ from pandas._typing import (
     IndexLabel,
     IndexType,
     IntervalClosedType,
+    IntervalT,
     JoinHow,
     JsonFrameOrient,
     Label,
@@ -198,7 +203,7 @@ class _LocIndexerFrame(_LocIndexer):
     def __setitem__(
         self,
         idx: MaskType | StrLike | _IndexSliceTuple | list[ScalarT],
-        value: S1 | ArrayLike | Series | DataFrame | None,
+        value: S1 | ArrayLike | Series | DataFrame | list | None,
     ) -> None: ...
     @overload
     def __setitem__(
@@ -2357,7 +2362,7 @@ d  4
         squeeze: _bool = ...,
         observed: _bool = ...,
         dropna: _bool = ...,
-    ) -> _DataFrameGroupByScalar:
+    ) -> DataFrameGroupBy[Scalar]:
         """
 Group DataFrame using a mapper or by a Series of columns.
 
@@ -2548,6 +2553,84 @@ Parrot 2  Parrot       24.0
         """
         pass
     @overload
+    def groupby(  # type: ignore[misc]  # pyright: ignore[reportOverlappingOverload]
+        self,
+        by: DatetimeIndex,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        as_index: _bool = ...,
+        sort: _bool = ...,
+        group_keys: _bool = ...,
+        squeeze: _bool = ...,
+        observed: _bool = ...,
+        dropna: _bool = ...,
+    ) -> DataFrameGroupBy[Timestamp]: ...
+    @overload
+    def groupby(  # type: ignore[misc]
+        self,
+        by: TimedeltaIndex,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        as_index: _bool = ...,
+        sort: _bool = ...,
+        group_keys: _bool = ...,
+        squeeze: _bool = ...,
+        observed: _bool = ...,
+        dropna: _bool = ...,
+    ) -> DataFrameGroupBy[Timedelta]: ...
+    @overload
+    def groupby(  # type: ignore[misc]
+        self,
+        by: PeriodIndex,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        as_index: _bool = ...,
+        sort: _bool = ...,
+        group_keys: _bool = ...,
+        squeeze: _bool = ...,
+        observed: _bool = ...,
+        dropna: _bool = ...,
+    ) -> DataFrameGroupBy[Period]: ...
+    @overload
+    def groupby(  # type: ignore[misc]
+        self,
+        by: IntervalIndex[IntervalT],
+        axis: Axis = ...,
+        level: Level | None = ...,
+        as_index: _bool = ...,
+        sort: _bool = ...,
+        group_keys: _bool = ...,
+        squeeze: _bool = ...,
+        observed: _bool = ...,
+        dropna: _bool = ...,
+    ) -> DataFrameGroupBy[IntervalT]: ...
+    @overload
+    def groupby(
+        self,
+        by: MultiIndex,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        as_index: _bool = ...,
+        sort: _bool = ...,
+        group_keys: _bool = ...,
+        squeeze: _bool = ...,
+        observed: _bool = ...,
+        dropna: _bool = ...,
+    ) -> DataFrameGroupBy[tuple]: ...
+    @overload
+    def groupby(
+        self,
+        by: CategoricalIndex | Index,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        as_index: _bool = ...,
+        sort: _bool = ...,
+        group_keys: _bool = ...,
+        squeeze: _bool = ...,
+        observed: _bool = ...,
+        dropna: _bool = ...,
+    ) -> DataFrameGroupBy[Any]: ...
+    @overload
     def groupby(
         self,
         by: GroupByObjectNonScalar | None = ...,
@@ -2559,7 +2642,7 @@ Parrot 2  Parrot       24.0
         squeeze: _bool = ...,
         observed: _bool = ...,
         dropna: _bool = ...,
-    ) -> _DataFrameGroupByNonScalar: ...
+    ) -> DataFrameGroupBy[tuple]: ...
     def pivot(
         self,
         *,
