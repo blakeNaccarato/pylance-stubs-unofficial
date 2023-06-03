@@ -10,6 +10,7 @@
       "type": "process",
       "command": "pwsh",
       "args": ["./update.ps1"],
+      "icon": { "id": "refresh" },
       "problemMatcher": []
     }
   ]
