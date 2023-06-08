@@ -3633,7 +3633,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     @overload
     def rolling(
         self,
-        window: int | str | BaseOffset | BaseIndexer,
+        window: int | str | _dt.timedelta | BaseOffset | BaseIndexer,
         min_periods: int | None = ...,
         center: _bool = ...,
         on: Hashable | None = ...,
@@ -3647,7 +3647,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     @overload
     def rolling(
         self,
-        window: int | str | BaseOffset | BaseIndexer,
+        window: int | str | _dt.timedelta | BaseOffset | BaseIndexer,
         min_periods: int | None = ...,
         center: _bool = ...,
         on: Hashable | None = ...,

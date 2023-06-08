@@ -35,7 +35,6 @@ class OpenMLError(ValueError):
     ...
 
 
-
 @overload
 def fetch_openml(
     name: Optional[str] = None,
