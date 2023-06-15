@@ -310,25 +310,26 @@ UsecolsArgType: TypeAlias = (
     | None
 )
 # Scratch types for generics
+
 S1 = TypeVar(
     "S1",
-    str,
-    bytes,
-    datetime.date,
-    datetime.time,
-    bool,
-    int,
-    float,
-    complex,
-    Dtype,
-    Timestamp,
-    Timedelta,
-    Period,
-    Interval[int],
-    Interval[float],
-    Interval[Timestamp],
-    Interval[Timedelta],
-    CategoricalDtype,
+    bound=str
+    | bytes
+    | datetime.date
+    | datetime.time
+    | bool
+    | int
+    | float
+    | complex
+    | Dtype
+    | Timestamp
+    | Timedelta
+    | Period
+    | Interval[int]
+    | Interval[float]
+    | Interval[Timestamp]
+    | Interval[Timedelta]
+    | CategoricalDtype,
 )
 T1 = TypeVar(
     "T1", str, int, np.int64, np.uint64, np.float64, float, np.dtype[np.generic]
@@ -359,13 +360,7 @@ NDFrameT = TypeVar("NDFrameT", bound=NDFrame)
 IndexT = TypeVar("IndexT", bound=Index)
 
 # Interval closed type
-IntervalT = TypeVar(
-    "IntervalT",
-    Interval[int],
-    Interval[float],
-    Interval[Timestamp],
-    Interval[Timedelta],
-)
+IntervalT = TypeVar("IntervalT", bound=Interval)
 IntervalClosedType: TypeAlias = Literal["left", "right", "both", "neither"]
 
 TakeIndexer: TypeAlias = Sequence[int] | Sequence[np.integer] | npt.NDArray[np.integer]
@@ -406,33 +401,51 @@ Function: TypeAlias = np.ufunc | Callable[..., Any]
 _HashableTa = TypeVar("_HashableTa", bound=Hashable)
 ByT = TypeVar(
     "ByT",
-    str,
-    bytes,
-    datetime.date,
-    datetime.datetime,
-    datetime.timedelta,
-    np.datetime64,
-    np.timedelta64,
-    bool,
-    int,
-    float,
-    complex,
-    Timestamp,
-    Timedelta,
-    Scalar,
-    Period,
-    Interval[int],
-    Interval[float],
-    Interval[Timestamp],
-    Interval[Timedelta],
-    tuple,
+    bound=str
+    | bytes
+    | datetime.date
+    | datetime.datetime
+    | datetime.timedelta
+    | np.datetime64
+    | np.timedelta64
+    | bool
+    | int
+    | float
+    | complex
+    | Timestamp
+    | Timedelta
+    | Scalar
+    | Period
+    | Interval[int]
+    | Interval[float]
+    | Interval[Timestamp]
+    | Interval[Timedelta]
+    | tuple,
+)
+# Use a distinct SeriesByT when using groupby with Series of known dtype.
+# Essentially, an intersection between Series S1 TypeVar, and ByT TypeVar
+SeriesByT = TypeVar(
+    "SeriesByT",
+    bound=str
+    | bytes
+    | datetime.date
+    | bool
+    | int
+    | float
+    | complex
+    | Timestamp
+    | Timedelta
+    | Period
+    | Interval[int]
+    | Interval[float]
+    | Interval[Timestamp]
+    | Interval[Timedelta],
 )
 GroupByObjectNonScalar: TypeAlias = (
     tuple
     | list[_HashableTa]
     | Function
     | list[Function]
-    | Series
     | list[Series]
     | np.ndarray
     | list[np.ndarray]
@@ -442,7 +455,7 @@ GroupByObjectNonScalar: TypeAlias = (
     | Grouper
     | list[Grouper]
 )
-GroupByObject: TypeAlias = Scalar | Index | GroupByObjectNonScalar
+GroupByObject: TypeAlias = Scalar | Index | GroupByObjectNonScalar | Series
 
 StataDateFormat: TypeAlias = Literal[
     "tc",

@@ -27,6 +27,7 @@ from matplotlib.axes import (
 import numpy as np
 from pandas import (
     Period,
+    PeriodDtype,
     Timedelta,
     Timestamp,
 )
@@ -76,6 +77,7 @@ from pandas.core.window.rolling import (
 )
 from typing_extensions import (
     Never,
+    Self,
     TypeAlias,
 )
 import xarray as xr
@@ -103,6 +105,7 @@ from pandas._typing import (
     CategoryDtypeArg,
     ComplexDtypeArg,
     CompressionOptions,
+    Dtype,
     DtypeBackend,
     DtypeObj,
     FilePath,
@@ -129,6 +132,7 @@ from pandas._typing import (
     Renamer,
     ReplaceMethod,
     Scalar,
+    SeriesByT,
     SortKind,
     StrDtypeArg,
     TimedeltaDtypeArg,
@@ -207,92 +211,55 @@ class Series(IndexOpsMixin, NDFrame, Generic[S1]):
     _ListLike: TypeAlias = ArrayLike | dict[_str, np.ndarray] | list | tuple | Index
     __hash__: ClassVar[None]
 
+    # TODO: can __new__ be converted to __init__? Pandas implements __init__
     @overload
     def __new__(
         cls,
         data: DatetimeIndex | Sequence[Timestamp | np.datetime64 | datetime],
         index: Axes | None = ...,
-        dtype=...,
+        dtype: TimestampDtypeArg = ...,
         name: Hashable | None = ...,
         copy: bool = ...,
-        fastpath: bool = ...,
     ) -> TimestampSeries: ...
     @overload
     def __new__(
         cls,
         data: _ListLike,
-        dtype: Literal["datetime64[ns]"],
         index: Axes | None = ...,
+        *,
+        dtype: TimestampDtypeArg,
         name: Hashable | None = ...,
         copy: bool = ...,
-        fastpath: bool = ...,
     ) -> TimestampSeries: ...
     @overload
     def __new__(
         cls,
         data: PeriodIndex,
         index: Axes | None = ...,
-        dtype=...,
+        dtype: PeriodDtype = ...,
         name: Hashable | None = ...,
         copy: bool = ...,
-        fastpath: bool = ...,
     ) -> PeriodSeries: ...
     @overload
     def __new__(
         cls,
         data: TimedeltaIndex | Sequence[Timedelta | np.timedelta64 | timedelta],
         index: Axes | None = ...,
-        dtype=...,
+        dtype: TimedeltaDtypeArg = ...,
         name: Hashable | None = ...,
         copy: bool = ...,
-        fastpath: bool = ...,
     ) -> TimedeltaSeries: ...
     @overload
     def __new__(
         cls,
-        data: IntervalIndex[Interval[int]] | Interval[int] | Sequence[Interval[int]],
+        data: IntervalIndex[Interval[_OrderableT]]
+        | Interval[_OrderableT]
+        | Sequence[Interval[_OrderableT]],
         index: Axes | None = ...,
-        dtype=...,
+        dtype: Literal["Interval"] = ...,
         name: Hashable | None = ...,
         copy: bool = ...,
-        fastpath: bool = ...,
-    ) -> IntervalSeries[int]: ...
-    @overload
-    def __new__(
-        cls,
-        data: IntervalIndex[Interval[float]]
-        | Interval[float]
-        | Sequence[Interval[float]],
-        index: Axes | None = ...,
-        dtype=...,
-        name: Hashable | None = ...,
-        copy: bool = ...,
-        fastpath: bool = ...,
-    ) -> IntervalSeries[float]: ...
-    @overload
-    def __new__(
-        cls,
-        data: IntervalIndex[Interval[Timestamp]]
-        | Interval[Timestamp]
-        | Sequence[Interval[Timestamp]],
-        index: Axes | None = ...,
-        dtype=...,
-        name: Hashable | None = ...,
-        copy: bool = ...,
-        fastpath: bool = ...,
-    ) -> IntervalSeries[Timestamp]: ...
-    @overload
-    def __new__(
-        cls,
-        data: IntervalIndex[Interval[Timedelta]]
-        | Interval[Timedelta]
-        | Sequence[Interval[Timedelta]],
-        index: Axes | None = ...,
-        dtype=...,
-        name: Hashable | None = ...,
-        copy: bool = ...,
-        fastpath: bool = ...,
-    ) -> IntervalSeries[Timedelta]: ...
+    ) -> IntervalSeries[_OrderableT]: ...
     @overload
     def __new__(
         cls,
@@ -301,22 +268,24 @@ class Series(IndexOpsMixin, NDFrame, Generic[S1]):
         index: Axes | None = ...,
         name: Hashable | None = ...,
         copy: bool = ...,
-        fastpath: bool = ...,
-    ) -> Series[S1]: ...
+    ) -> Self: ...
     @overload
     def __new__(
         cls,
-        data: object
-        | _ListLike
-        | Series[S1]
-        | dict[int, S1]
-        | dict[_str, S1]
-        | None = ...,
+        data: Series[S1] | dict[int, S1] | dict[_str, S1] = ...,
         index: Axes | None = ...,
-        dtype=...,
+        dtype: Dtype = ...,
         name: Hashable | None = ...,
         copy: bool = ...,
-        fastpath: bool = ...,
+    ) -> Self: ...
+    @overload
+    def __new__(
+        cls,
+        data: object | _ListLike | None = ...,
+        index: Axes | None = ...,
+        dtype: Dtype = ...,
+        name: Hashable | None = ...,
+        copy: bool = ...,
     ) -> Series: ...
     @property
     def hasnans(self) -> bool: ...
@@ -521,38 +490,28 @@ starting from the end of the object, just like with Python lists.
         self,
         buf: FilePath | WriteBuffer[str],
         na_rep: _str = ...,
-        formatters=...,
-        float_format=...,
-        sparsify: _bool | None = ...,
-        index_names: _bool = ...,
-        justify: _str | None = ...,
+        float_format: Callable[[float], str] = ...,
+        header: _bool = ...,
+        index: _bool = ...,
+        length: _bool = ...,
+        dtype: _bool = ...,
+        name: _bool = ...,
         max_rows: int | None = ...,
         min_rows: int | None = ...,
-        max_cols: int | None = ...,
-        show_dimensions: _bool = ...,
-        decimal: _str = ...,
-        line_width: int | None = ...,
-        max_colwidth: int | None = ...,
-        encoding: _str | None = ...,
     ) -> None: ...
     @overload
     def to_string(
         self,
         buf: None = ...,
         na_rep: _str = ...,
-        formatters=...,
-        float_format=...,
-        sparsify: _bool | None = ...,
-        index_names: _bool = ...,
-        justify: _str | None = ...,
+        float_format: Callable[[float], str] = ...,
+        header: _bool = ...,
+        index: _bool = ...,
+        length: _bool = ...,
+        dtype: _bool = ...,
+        name: _bool = ...,
         max_rows: int | None = ...,
         min_rows: int | None = ...,
-        max_cols: int | None = ...,
-        show_dimensions: _bool = ...,
-        decimal: _str = ...,
-        line_width: int | None = ...,
-        max_colwidth: int | None = ...,
-        encoding: _str | None = ...,
     ) -> _str: ...
     @overload
     def to_json(
@@ -880,7 +839,20 @@ Name: Max Speed, dtype: float64
     @overload
     def groupby(
         self,
-        by: CategoricalIndex | Index,
+        by: Series[SeriesByT],
+        axis: AxisIndex = ...,
+        level: Level | None = ...,
+        as_index: _bool = ...,
+        sort: _bool = ...,
+        group_keys: _bool = ...,
+        squeeze: _bool = ...,
+        observed: _bool = ...,
+        dropna: _bool = ...,
+    ) -> SeriesGroupBy[S1, SeriesByT]: ...
+    @overload
+    def groupby(
+        self,
+        by: CategoricalIndex | Index | Series,
         axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
@@ -3511,7 +3483,7 @@ See the :ref:`user guide <basics.reindexing>` for more.
     # ignore needed because of mypy, for using `Never` as type-var.
     @overload
     def sum(
-        self: Series[Never],  # type: ignore[type-var]
+        self: Series[Never],
         axis: AxisIndex | None = ...,
         skipna: _bool | None = ...,
         level: None = ...,
@@ -3596,8 +3568,8 @@ class TimestampSeries(Series[Timestamp]):
     # ignore needed because of mypy
     @property
     def dt(self) -> TimestampProperties: ...  # type: ignore[override]
-    def __add__(self, other: TimedeltaSeries | np.timedelta64) -> TimestampSeries: ...  # type: ignore[override]
-    def __radd__(self, other: TimedeltaSeries | np.timedelta64) -> TimestampSeries: ...  # type: ignore[override]
+    def __add__(self, other: TimedeltaSeries | np.timedelta64 | timedelta) -> TimestampSeries: ...  # type: ignore[override]
+    def __radd__(self, other: TimedeltaSeries | np.timedelta64 | timedelta) -> TimestampSeries: ...  # type: ignore[override]
     @overload  # type: ignore[override]
     def __sub__(
         self, other: Timestamp | datetime | TimestampSeries
@@ -3605,7 +3577,7 @@ class TimestampSeries(Series[Timestamp]):
     @overload
     def __sub__(
         self,
-        other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64,
+        other: timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64,
     ) -> TimestampSeries: ...
     def __mul__(self, other: float | Series[int] | Series[float] | Sequence[float]) -> TimestampSeries: ...  # type: ignore[override]
     def __truediv__(self, other: float | Series[int] | Series[float] | Sequence[float]) -> TimestampSeries: ...  # type: ignore[override]
