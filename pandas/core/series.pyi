@@ -1384,7 +1384,7 @@ Name: Data, dtype: int64
     @overload
     def apply(
         self,
-        func: Callable[..., Scalar | Sequence | set | Mapping | None],
+        func: Callable[..., Scalar | Sequence | set | Mapping | NAType | None],
         convertDType: _bool = ...,
         args: tuple = ...,
         **kwds,
@@ -2966,7 +2966,7 @@ See the :ref:`user guide <basics.reindexing>` for more.
     def mask(
         self,
         cond: MaskType,
-        other: Scalar | Series[S1] | DataFrame | Callable = ...,
+        other: Scalar | Series[S1] | DataFrame | Callable | NAType | None = ...,
         *,
         inplace: _bool = ...,
         axis: AxisIndex | None = ...,
