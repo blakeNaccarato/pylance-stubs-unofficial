@@ -127,6 +127,7 @@ from pandas._typing import (
     ListLikeU,
     MaskType,
     NaPosition,
+    ObjectDtypeArg,
     QuantileInterpolation,
     RandomState,
     Renamer,
@@ -138,6 +139,8 @@ from pandas._typing import (
     TimedeltaDtypeArg,
     TimestampConvention,
     TimestampDtypeArg,
+    UIntDtypeArg,
+    VoidDtypeArg,
     WriteBuffer,
     np_ndarray_anyint,
     np_ndarray_bool,
@@ -403,7 +406,7 @@ starting from the end of the object, just like with Python lists.
 3    lion  mammal       80.5
         """
         pass
-    def __getattr__(self, name: str) -> S1: ...
+    def __getattr__(self, name: _str) -> S1: ...
     @overload
     def __getitem__(
         self,
@@ -2740,7 +2743,7 @@ See the :ref:`user guide <basics.reindexing>` for more.
     @overload
     def astype(
         self,
-        dtype: IntDtypeArg,
+        dtype: IntDtypeArg | UIntDtypeArg,
         copy: _bool = ...,
         errors: IgnoreRaise = ...,
     ) -> Series[int]: ...
@@ -2796,7 +2799,7 @@ See the :ref:`user guide <basics.reindexing>` for more.
     @overload
     def astype(
         self,
-        dtype: type[object] | ExtensionDtype,
+        dtype: ObjectDtypeArg | VoidDtypeArg | ExtensionDtype | DtypeObj,
         copy: _bool = ...,
         errors: IgnoreRaise = ...,
     ) -> Series: ...
@@ -3117,6 +3120,16 @@ See the :ref:`user guide <basics.reindexing>` for more.
     ) -> Series[bool]: ...
     @overload
     def __rxor__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...  # type: ignore[misc]
+    @overload
+    def __sub__(
+        self: Series[Timestamp],
+        other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64,
+    ) -> TimestampSeries: ...
+    @overload
+    def __sub__(
+        self: Series[Timedelta],
+        other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64,
+    ) -> TimedeltaSeries: ...
     @overload
     def __sub__(
         self, other: Timestamp | datetime | TimestampSeries
