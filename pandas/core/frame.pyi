@@ -86,6 +86,7 @@ from pandas._typing import (
     IndexingInt,
     IndexLabel,
     IndexType,
+    InterpolateOptions,
     IntervalClosedType,
     IntervalT,
     JoinHow,
@@ -3382,7 +3383,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     @overload
     def interpolate(
         self,
-        method: _str = ...,
+        method: InterpolateOptions = ...,
         *,
         axis: Axis = ...,
         limit: int | None = ...,
@@ -3395,7 +3396,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     @overload
     def interpolate(
         self,
-        method: _str = ...,
+        method: InterpolateOptions = ...,
         *,
         axis: Axis = ...,
         limit: int | None = ...,
@@ -3408,7 +3409,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     @overload
     def interpolate(
         self,
-        method: _str = ...,
+        method: InterpolateOptions = ...,
         *,
         axis: Axis = ...,
         limit: int | None = ...,
