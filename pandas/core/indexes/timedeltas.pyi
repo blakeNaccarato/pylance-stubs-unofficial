@@ -11,14 +11,15 @@ from typing import (
 import numpy as np
 from pandas import (
     DateOffset,
+    Index,
     Period,
 )
 from pandas.core.indexes.accessors import TimedeltaIndexProperties
-from pandas.core.indexes.base import _IndexGetitemMixin
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.series import TimedeltaSeries
+from typing_extensions import Self
 
 from pandas._libs import (
     Timedelta,
@@ -31,12 +32,9 @@ from pandas._typing import (
     num,
 )
 
-# type ignore needed because of __getitem__()
-class TimedeltaIndex(  # type: ignore[misc]
-    _IndexGetitemMixin[Timedelta], DatetimeTimedeltaMixin, TimedeltaIndexProperties
-):
-    def __init__(
-        self,
+class TimedeltaIndex(DatetimeTimedeltaMixin[Timedelta], TimedeltaIndexProperties):
+    def __new__(
+        cls,
         data: AnyArrayLike
         | list[str]
         | Sequence[dt.timedelta | Timedelta | np.timedelta64 | float] = ...,
@@ -46,7 +44,7 @@ class TimedeltaIndex(  # type: ignore[misc]
         dtype: Literal["<m8[ns]"] = ...,
         copy: bool = ...,
         name: str = ...,
-    ) -> None: ...
+    ) -> Self: ...
     # various ignores needed for mypy, as we do want to restrict what can be used in
     # arithmetic for these types
     @overload
@@ -54,11 +52,24 @@ class TimedeltaIndex(  # type: ignore[misc]
     @overload
     def __add__(self, other: DatetimeIndex) -> DatetimeIndex: ...
     @overload
-    def __add__(self, other: Timedelta | TimedeltaIndex) -> TimedeltaIndex: ...
+    def __add__(self, other: Timedelta | Self) -> Self: ...
     def __radd__(self, other: Timestamp | DatetimeIndex) -> DatetimeIndex: ...  # type: ignore[override]
-    def __sub__(self, other: Timedelta | TimedeltaIndex) -> TimedeltaIndex: ...
-    def __mul__(self, other: num) -> TimedeltaIndex: ...
-    def __truediv__(self, other: num) -> TimedeltaIndex: ...
+    def __sub__(self, other: Timedelta | Self) -> Self: ...
+    def __mul__(self, other: num) -> Self: ...
+    @overload  # type: ignore[override]
+    def __truediv__(self, other: num | Sequence[float]) -> Self: ...
+    @overload
+    def __truediv__(
+        self, other: dt.timedelta | Sequence[dt.timedelta]
+    ) -> Index[float]: ...
+    def __rtruediv__(self, other: dt.timedelta | Sequence[dt.timedelta]) -> Index[float]: ...  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def __floordiv__(self, other: num | Sequence[float]) -> Self: ...
+    @overload
+    def __floordiv__(
+        self, other: dt.timedelta | Sequence[dt.timedelta]
+    ) -> Index[int]: ...
+    def __rfloordiv__(self, other: dt.timedelta | Sequence[dt.timedelta]) -> Index[int]: ...  # type: ignore[override]
     def astype(self, dtype, copy: bool = ...): ...
     def get_value(self, series, key): ...
     def get_loc(self, key, tolerance=...): ...

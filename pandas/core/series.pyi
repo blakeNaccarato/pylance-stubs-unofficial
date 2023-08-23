@@ -211,7 +211,7 @@ class _LocIndexerSeries(_LocIndexer, Generic[S1]):
         value: S1 | ArrayLike | Series[S1] | None,
     ) -> None: ...
 
-class Series(IndexOpsMixin, NDFrame, Generic[S1]):
+class Series(IndexOpsMixin[S1], NDFrame):
     _ListLike: TypeAlias = ArrayLike | dict[_str, np.ndarray] | list | tuple | Index
     __hash__: ClassVar[None]
 
@@ -3038,7 +3038,7 @@ See the :ref:`user guide <basics.reindexing>` for more.
     # def __array__(self, dtype: Optional[_bool] = ...) -> _np_ndarray
     def __div__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
     def __eq__(self, other: object) -> Series[_bool]: ...  # type: ignore[override]
-    def __floordiv__(self, other: num | _ListLike | Series[S1]) -> Series[int]: ...  # type: ignore[override]
+    def __floordiv__(self, other: num | _ListLike | Series[S1]) -> Series[int]: ...
     def __ge__(  # type: ignore[override]
         self, other: S1 | _ListLike | Series[S1] | datetime | timedelta
     ) -> Series[_bool]: ...
@@ -3090,9 +3090,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
     @overload
     def __ror__(self, other: int | np_ndarray_anyint | Series[int]) -> Series[int]: ...  # type: ignore[misc]
     def __rsub__(self, other: num | _ListLike | Series[S1]) -> Series: ...
-    @overload
-    def __rtruediv__(self, other: TimedeltaSeries) -> Series[float]: ...
-    @overload
     def __rtruediv__(self, other: num | _ListLike | Series[S1]) -> Series: ...
     # ignore needed for mypy as we want different results based on the arguments
     @overload  # type: ignore[override]
@@ -3618,7 +3615,44 @@ class TimedeltaSeries(Series[Timedelta]):
     def __sub__(  # type: ignore[override]
         self, other: Timedelta | TimedeltaSeries | TimedeltaIndex | np.timedelta64
     ) -> TimedeltaSeries: ...
-    def __truediv__(self, other: Timedelta | TimedeltaSeries | np.timedelta64 | TimedeltaIndex) -> Series[float]: ...  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def __truediv__(self, other: float | Sequence[float]) -> Self: ...
+    @overload
+    def __truediv__(
+        self,
+        other: timedelta
+        | TimedeltaSeries
+        | np.timedelta64
+        | TimedeltaIndex
+        | Sequence[timedelta],
+    ) -> Series[float]: ...
+    def __rtruediv__(  # type: ignore[override]
+        self,
+        other: timedelta
+        | TimedeltaSeries
+        | np.timedelta64
+        | TimedeltaIndex
+        | Sequence[timedelta],
+    ) -> Series[float]: ...
+    @overload  # type: ignore[override]
+    def __floordiv__(self, other: float | Sequence[float]) -> Self: ...
+    @overload
+    def __floordiv__(
+        self,
+        other: timedelta
+        | TimedeltaSeries
+        | np.timedelta64
+        | TimedeltaIndex
+        | Sequence[timedelta],
+    ) -> Series[int]: ...
+    def __rfloordiv__(  # type: ignore[override]
+        self,
+        other: timedelta
+        | TimedeltaSeries
+        | np.timedelta64
+        | TimedeltaIndex
+        | Sequence[timedelta],
+    ) -> Series[int]: ...
     @property
     def dt(self) -> TimedeltaProperties: ...  # type: ignore[override]
     def mean(  # type: ignore[override]
