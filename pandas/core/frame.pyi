@@ -603,7 +603,7 @@ Name: population, dtype: int64
     @overload
     def __getitem__(  # type: ignore[misc]
         self,
-        key: Series[_bool]
+        key: Series
         | DataFrame
         | Index
         | np_ndarray_str
