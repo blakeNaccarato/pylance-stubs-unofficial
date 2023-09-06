@@ -1,19 +1,8 @@
 import datetime
+from collections.abc import AsyncIterable, Iterable, Iterator
 from io import BytesIO
 from json import JSONEncoder
-from typing import (
-    Any,
-    AsyncIterable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-    overload,
-)
+from typing import Any, overload
 
 from django.core.handlers.wsgi import WSGIRequest
 from django.http.cookie import SimpleCookie
@@ -31,31 +20,29 @@ class HttpResponseBase(Iterable[Any]):
     closed: bool = ...
     def __init__(
         self,
-        content_type: Optional[str] = ...,
-        status: Optional[int] = ...,
-        reason: Optional[str] = ...,
-        charset: Optional[str] = ...,
+        content_type: str | None = ...,
+        status: int | None = ...,
+        reason: str | None = ...,
+        charset: str | None = ...,
     ) -> None: ...
     def serialize_headers(self) -> bytes: ...
-    def __setitem__(
-        self, header: Union[str, bytes], value: Union[str, bytes, int]
-    ) -> None: ...
-    def __delitem__(self, header: Union[str, bytes]) -> None: ...
-    def __getitem__(self, header: Union[str, bytes]) -> str: ...
+    def __setitem__(self, header: str | bytes, value: str | bytes | int) -> None: ...
+    def __delitem__(self, header: str | bytes) -> None: ...
+    def __getitem__(self, header: str | bytes) -> str: ...
     def has_header(self, header: str) -> bool: ...
-    def items(self) -> Iterable[Tuple[str, str]]: ...
+    def items(self) -> Iterable[tuple[str, str]]: ...
     @overload
-    def get(self, header: Union[str, bytes], alternate: Optional[str]) -> str: ...
+    def get(self, header: str | bytes, alternate: str | None) -> str: ...
     @overload
-    def get(self, header: Union[str, bytes]) -> Optional[str]: ...
+    def get(self, header: str | bytes) -> str | None: ...
     def set_cookie(
         self,
         key: str,
         value: str = ...,
-        max_age: Optional[int] = ...,
-        expires: Optional[Union[str, datetime.datetime]] = ...,
+        max_age: int | None = ...,
+        expires: str | datetime.datetime | None = ...,
         path: str = ...,
-        domain: Optional[str] = ...,
+        domain: str | None = ...,
         secure: bool = ...,
         httponly: bool = ...,
         samesite: str = ...,
@@ -65,11 +52,11 @@ class HttpResponseBase(Iterable[Any]):
         self, key: str, value: str, salt: str = ..., **kwargs: Any
     ) -> None: ...
     def delete_cookie(
-        self, key: str, path: str = ..., domain: Optional[str] = ...
+        self, key: str, path: str = ..., domain: str | None = ...
     ) -> None: ...
     def make_bytes(self, value: object) -> bytes: ...
     def close(self) -> None: ...
-    def write(self, content: Union[str, bytes]) -> None: ...
+    def write(self, content: str | bytes) -> None: ...
     def flush(self) -> None: ...
     def tell(self) -> int: ...
     def readable(self) -> bool: ...
@@ -81,7 +68,7 @@ class HttpResponseBase(Iterable[Any]):
 class HttpResponse(HttpResponseBase):
     content: Any
     csrf_cookie_set: bool
-    redirect_chain: List[Tuple[str, int]]
+    redirect_chain: list[tuple[str, int]]
     sameorigin: bool
     test_server_port: str
     test_was_secure_request: bool
@@ -95,8 +82,8 @@ class HttpResponse(HttpResponseBase):
     wsgi_request: WSGIRequest
     # Attributes assigned by monkey-patching in test client Client.request()
     client: Client
-    request: Dict[str, Any]
-    templates: List[Template]
+    request: dict[str, Any]
+    templates: list[Template]
     context: Context
     resolver_match: ResolverMatch
     def json(self) -> Any: ...
@@ -104,10 +91,10 @@ class HttpResponse(HttpResponseBase):
 
 class StreamingHttpResponse(HttpResponseBase):
     content: Any
-    streaming_content: Union[Iterable[bytes], AsyncIterable[bytes]]
+    streaming_content: Iterable[bytes] | AsyncIterable[bytes]
     def __init__(
         self,
-        streaming_content: Union[Iterable[bytes], AsyncIterable[bytes]] = ...,
+        streaming_content: Iterable[bytes] | AsyncIterable[bytes] = ...,
         *args: Any,
         **kwargs: Any
     ) -> None: ...
@@ -116,10 +103,10 @@ class StreamingHttpResponse(HttpResponseBase):
 class FileResponse(StreamingHttpResponse):
     client: Client
     context: None
-    file_to_stream: Optional[BytesIO]
-    request: Dict[str, str]
+    file_to_stream: BytesIO | None
+    request: dict[str, str]
     resolver_match: ResolverMatch
-    templates: List[Any]
+    templates: list[Any]
     wsgi_request: WSGIRequest
     block_size: int = ...
     as_attachment: bool = ...
@@ -128,10 +115,10 @@ class FileResponse(StreamingHttpResponse):
         self, *args: Any, as_attachment: bool = ..., filename: str = ..., **kwargs: Any
     ) -> None: ...
     def set_headers(self, filelike: BytesIO) -> None: ...
-    def json(self) -> Dict[str, Any]: ...
+    def json(self) -> dict[str, Any]: ...
 
 class HttpResponseRedirectBase(HttpResponse):
-    allowed_schemes: List[str] = ...
+    allowed_schemes: list[str] = ...
     def __init__(self, redirect_to: str, *args: Any, **kwargs: Any) -> None: ...
 
 class HttpResponseRedirect(HttpResponseRedirectBase): ...
@@ -157,8 +144,8 @@ class JsonResponse(HttpResponse):
     def __init__(
         self,
         data: Any,
-        encoder: Type[JSONEncoder] = ...,
+        encoder: type[JSONEncoder] = ...,
         safe: bool = ...,
-        json_dumps_params: Optional[Dict[str, Any]] = ...,
+        json_dumps_params: dict[str, Any] | None = ...,
         **kwargs: Any
     ) -> None: ...

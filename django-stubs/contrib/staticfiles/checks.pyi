@@ -1,8 +1,9 @@
-from typing import Any, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django.apps.config import AppConfig
 from django.core.checks.messages import Error
 
 def check_finders(
-    app_configs: Optional[Sequence[AppConfig]] = ..., **kwargs: Any
-) -> List[Error]: ...
+    app_configs: Sequence[AppConfig] | None = ..., **kwargs: Any
+) -> list[Error]: ...

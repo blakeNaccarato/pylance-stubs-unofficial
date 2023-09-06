@@ -1,6 +1,7 @@
 import functools
+from collections.abc import Callable, Sequence
 from http.cookies import SimpleCookie
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any
 
 from django.core.handlers.wsgi import WSGIRequest
 from django.http import HttpResponse
@@ -17,24 +18,24 @@ class SimpleTemplateResponse(HttpResponse):
     cookies: SimpleCookie[Any]
     status_code: int
     rendering_attrs: Any = ...
-    template_name: Union[List[str], Template, str] = ...
-    context_data: Optional[Dict[str, Any]] = ...
-    using: Optional[str] = ...
+    template_name: list[str] | Template | str = ...
+    context_data: dict[str, Any] | None = ...
+    using: str | None = ...
     def __init__(
         self,
-        template: Union[List[str], Template, str],
-        context: Optional[Dict[str, Any]] = ...,
-        content_type: Optional[str] = ...,
-        status: Optional[int] = ...,
-        charset: Optional[str] = ...,
-        using: Optional[str] = ...,
+        template: list[str] | Template | str,
+        context: dict[str, Any] | None = ...,
+        content_type: str | None = ...,
+        status: int | None = ...,
+        charset: str | None = ...,
+        using: str | None = ...,
     ) -> None: ...
     def resolve_template(
-        self, template: Union[Sequence[str], Template, str]
+        self, template: Sequence[str] | Template | str
     ) -> Template: ...
     def resolve_context(
-        self, context: Optional[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]: ...
+        self, context: dict[str, Any] | None
+    ) -> dict[str, Any] | None: ...
     @property
     def rendered_content(self) -> str: ...
     def add_post_render_callback(self, callback: Callable[..., Any]) -> None: ...
@@ -47,25 +48,25 @@ class TemplateResponse(SimpleTemplateResponse):
     client: Client
     closed: bool
     context: RequestContext
-    context_data: Optional[Dict[str, Any]]
+    context_data: dict[str, Any] | None
     cookies: SimpleCookie[Any]
     csrf_cookie_set: bool
     json: functools.partial[Any]
-    redirect_chain: List[Tuple[str, int]]
-    request: Dict[str, Union[int, str]]
+    redirect_chain: list[tuple[str, int]]
+    request: dict[str, int | str]
     status_code: int
-    template_name: Union[List[str], Template, str]
-    templates: List[Template]
-    using: Optional[str]
+    template_name: list[str] | Template | str
+    templates: list[Template]
+    using: str | None
     wsgi_request: WSGIRequest
     rendering_attrs: Any = ...
     def __init__(
         self,
         request: HttpRequest,
-        template: Union[List[str], Template, str],
-        context: Optional[Dict[str, Any]] = ...,
-        content_type: Optional[str] = ...,
-        status: Optional[int] = ...,
+        template: list[str] | Template | str,
+        context: dict[str, Any] | None = ...,
+        content_type: str | None = ...,
+        status: int | None = ...,
         charset: None = ...,
-        using: Optional[str] = ...,
+        using: str | None = ...,
     ) -> None: ...

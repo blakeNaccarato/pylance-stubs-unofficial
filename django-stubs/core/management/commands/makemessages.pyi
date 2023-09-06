@@ -1,4 +1,5 @@
-from typing import Any, Optional, Pattern, Type
+from re import Pattern
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -13,7 +14,7 @@ class TranslatableFile:
     file_name: str
     locale_dir: str
     def __init__(
-        self, dirpath: str, file_name: str, locale_dir: Optional[str]
+        self, dirpath: str, file_name: str, locale_dir: str | None
     ) -> None: ...
 
 class BuildFile:
@@ -38,5 +39,5 @@ def normalize_eols(raw_contents: str) -> str: ...
 def write_pot_file(potfile: str, msgs: str) -> None: ...
 
 class Command(BaseCommand):
-    translatable_file_class: Type[TranslatableFile] = ...
-    build_file_class: Type[BuildFile] = ...
+    translatable_file_class: type[TranslatableFile] = ...
+    build_file_class: type[BuildFile] = ...

@@ -1,5 +1,6 @@
-import sys
-from typing import Any, Collection, Optional, Set, Tuple, Type, TypeVar, Union
+from collections.abc import Collection
+from typing import Any, ClassVar, TypeVar
+from typing_extensions import Literal, Self
 
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.base_user import AbstractBaseUser as AbstractBaseUser
@@ -10,15 +11,10 @@ from django.db import models
 from django.db.models.base import Model
 from django.db.models.manager import EmptyManager
 
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
-
-_AnyUser = Union[Model, "AnonymousUser"]
+_AnyUser = Model | AnonymousUser
 
 def update_last_login(
-    sender: Type[AbstractBaseUser], user: AbstractBaseUser, **kwargs: Any
+    sender: type[AbstractBaseUser], user: AbstractBaseUser, **kwargs: Any
 ) -> None: ...
 
 class PermissionManager(models.Manager["Permission"]):
@@ -28,18 +24,18 @@ class PermissionManager(models.Manager["Permission"]):
 
 class Permission(models.Model):
     content_type_id: int
-    objects: PermissionManager
+    objects: ClassVar[PermissionManager]
 
     name = models.CharField(max_length=255)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     codename = models.CharField(max_length=100)
-    def natural_key(self) -> Tuple[str, str, str]: ...
+    def natural_key(self) -> tuple[str, str, str]: ...
 
 class GroupManager(models.Manager["Group"]):
     def get_by_natural_key(self, name: str) -> Group: ...
 
 class Group(models.Model):
-    objects: GroupManager
+    objects: ClassVar[GroupManager]
 
     name = models.CharField(max_length=150)
     permissions = models.ManyToManyField[Permission, Any](Permission)
@@ -51,36 +47,36 @@ class UserManager(BaseUserManager[_T]):
     def create_user(
         self,
         username: str,
-        email: Optional[str] = ...,
-        password: Optional[str] = ...,
+        email: str | None = ...,
+        password: str | None = ...,
         **extra_fields: Any
     ) -> _T: ...
     def create_superuser(
         self,
         username: str,
-        email: Optional[str],
-        password: Optional[str],
+        email: str | None,
+        password: str | None,
         **extra_fields: Any
     ) -> _T: ...
     def with_perm(
         self,
-        perm: Union[str, Permission],
+        perm: str | Permission,
         is_active: bool = ...,
         include_superusers: bool = ...,
-        backend: Optional[Union[Type[ModelBackend], str]] = ...,
-        obj: Optional[Model] = ...,
+        backend: type[ModelBackend] | str | None = ...,
+        obj: Model | None = ...,
     ) -> Any: ...
 
 class PermissionsMixin(models.Model):
     is_superuser = models.BooleanField()
     groups = models.ManyToManyField[Group, Any](Group)
     user_permissions = models.ManyToManyField[Permission, Any](Permission)
-    def get_user_permissions(self, obj: Optional[_AnyUser] = ...) -> Set[str]: ...
-    def get_group_permissions(self, obj: Optional[_AnyUser] = ...) -> Set[str]: ...
-    def get_all_permissions(self, obj: Optional[_AnyUser] = ...) -> Set[str]: ...
-    def has_perm(self, perm: str, obj: Optional[_AnyUser] = ...) -> bool: ...
+    def get_user_permissions(self, obj: _AnyUser | None = ...) -> set[str]: ...
+    def get_group_permissions(self, obj: _AnyUser | None = ...) -> set[str]: ...
+    def get_all_permissions(self, obj: _AnyUser | None = ...) -> set[str]: ...
+    def has_perm(self, perm: str, obj: _AnyUser | None = ...) -> bool: ...
     def has_perms(
-        self, perm_list: Collection[str], obj: Optional[_AnyUser] = ...
+        self, perm_list: Collection[str], obj: _AnyUser | None = ...
     ) -> bool: ...
     def has_module_perms(self, app_label: str) -> bool: ...
 
@@ -104,7 +100,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     ) -> None: ...
 
 class User(AbstractUser):
-    objects: UserManager[User]
+    objects: ClassVar[UserManager[Self]]  # type: ignore[assignment]
 
 class AnonymousUser:
     id: Any = ...
@@ -121,12 +117,12 @@ class AnonymousUser:
     def groups(self) -> EmptyManager: ...
     @property
     def user_permissions(self) -> EmptyManager: ...
-    def get_user_permissions(self, obj: Optional[_AnyUser] = ...) -> Set[str]: ...
-    def get_group_permissions(self, obj: Optional[_AnyUser] = ...) -> Set[Any]: ...
-    def get_all_permissions(self, obj: Optional[_AnyUser] = ...) -> Set[str]: ...
-    def has_perm(self, perm: str, obj: Optional[_AnyUser] = ...) -> bool: ...
+    def get_user_permissions(self, obj: _AnyUser | None = ...) -> set[str]: ...
+    def get_group_permissions(self, obj: _AnyUser | None = ...) -> set[Any]: ...
+    def get_all_permissions(self, obj: _AnyUser | None = ...) -> set[str]: ...
+    def has_perm(self, perm: str, obj: _AnyUser | None = ...) -> bool: ...
     def has_perms(
-        self, perm_list: Collection[str], obj: Optional[_AnyUser] = ...
+        self, perm_list: Collection[str], obj: _AnyUser | None = ...
     ) -> bool: ...
     def has_module_perms(self, module: str) -> bool: ...
     @property

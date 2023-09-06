@@ -1,19 +1,7 @@
 import threading
 import unittest
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-    overload,
-)
+from collections.abc import Callable, Iterable
+from typing import Any, ClassVar, overload
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.handlers.wsgi import WSGIHandler
@@ -36,8 +24,8 @@ class _AssertNumQueriesContext(CaptureQueriesContext):
 class _AssertTemplateUsedContext:
     test_case: SimpleTestCase = ...
     template_name: str = ...
-    rendered_templates: List[Template] = ...
-    rendered_template_names: List[str] = ...
+    rendered_templates: list[Template] = ...
+    rendered_template_names: list[str] = ...
     context: ContextList = ...
     def __init__(self, test_case: Any, template_name: Any) -> None: ...
     def on_template_render(
@@ -61,8 +49,8 @@ class SimpleTestCase(unittest.TestCase):
     client: Client
     allow_database_queries: bool = ...
     # TODO: str -> Literal['__all__']
-    databases: Union[Set[str], str] = ...
-    def __call__(self, result: Optional[unittest.TestResult] = ...) -> None: ...
+    databases: set[str] | str = ...
+    def __call__(self, result: unittest.TestResult | None = ...) -> None: ...
     def settings(self, **kwargs: Any) -> Any: ...
     def modify_settings(self, **kwargs: Any) -> Any: ...
     def assertRedirects(
@@ -77,8 +65,8 @@ class SimpleTestCase(unittest.TestCase):
     def assertContains(
         self,
         response: HttpResponseBase,
-        text: Union[bytes, int, str],
-        count: Optional[int] = ...,
+        text: bytes | int | str,
+        count: int | None = ...,
         status_code: int = ...,
         msg_prefix: str = ...,
         html: bool = ...,
@@ -86,7 +74,7 @@ class SimpleTestCase(unittest.TestCase):
     def assertNotContains(
         self,
         response: HttpResponse,
-        text: Union[bytes, str],
+        text: bytes | str,
         status_code: int = ...,
         msg_prefix: str = ...,
         html: bool = ...,
@@ -95,85 +83,83 @@ class SimpleTestCase(unittest.TestCase):
         self,
         response: HttpResponse,
         form: str,
-        field: Optional[str],
-        errors: Union[List[str], str],
+        field: str | None,
+        errors: list[str] | str,
         msg_prefix: str = ...,
     ) -> None: ...
     def assertFormsetError(
         self,
         response: HttpResponse,
         formset: str,
-        form_index: Optional[int],
-        field: Optional[str],
-        errors: Union[List[str], str],
+        form_index: int | None,
+        field: str | None,
+        errors: list[str] | str,
         msg_prefix: str = ...,
     ) -> None: ...
     def assertTemplateUsed(
         self,
-        response: Optional[Union[HttpResponse, str]] = ...,
-        template_name: Optional[str] = ...,
+        response: HttpResponse | str | None = ...,
+        template_name: str | None = ...,
         msg_prefix: str = ...,
-        count: Optional[int] = ...,
-    ) -> Optional[_AssertTemplateUsedContext]: ...
+        count: int | None = ...,
+    ) -> _AssertTemplateUsedContext | None: ...
     def assertTemplateNotUsed(
         self,
-        response: Union[HttpResponse, str] = ...,
-        template_name: Optional[str] = ...,
+        response: HttpResponse | str = ...,
+        template_name: str | None = ...,
         msg_prefix: str = ...,
-    ) -> Optional[_AssertTemplateNotUsedContext]: ...
+    ) -> _AssertTemplateNotUsedContext | None: ...
     def assertRaisesMessage(
         self,
-        expected_exception: Type[Exception],
+        expected_exception: type[Exception],
         expected_message: str,
         *args: Any,
         **kwargs: Any
     ) -> Any: ...
     def assertWarnsMessage(
         self,
-        expected_warning: Type[Exception],
+        expected_warning: type[Exception],
         expected_message: str,
         *args: Any,
         **kwargs: Any
     ) -> Any: ...
     def assertFieldOutput(
         self,
-        fieldclass: Type[EmailField],
-        valid: Dict[str, str],
-        invalid: Dict[str, List[str]],
+        fieldclass: type[EmailField],
+        valid: dict[str, str],
+        invalid: dict[str, list[str]],
         field_args: None = ...,
         field_kwargs: None = ...,
         empty_value: str = ...,
     ) -> Any: ...
     def assertHTMLEqual(
-        self, html1: str, html2: str, msg: Optional[str] = ...
+        self, html1: str, html2: str, msg: str | None = ...
     ) -> None: ...
     def assertHTMLNotEqual(
-        self, html1: str, html2: str, msg: Optional[str] = ...
+        self, html1: str, html2: str, msg: str | None = ...
     ) -> None: ...
     def assertInHTML(
         self,
         needle: str,
         haystack: SafeText,
-        count: Optional[int] = ...,
+        count: int | None = ...,
         msg_prefix: str = ...,
     ) -> None: ...
     def assertJSONEqual(
         self,
         raw: str,
-        expected_data: Union[Dict[str, Any], List[Any], str, int, float, bool, None],
-        msg: Optional[str] = ...,
+        expected_data: dict[str, Any] | list[Any] | str | int | float | bool | None,
+        msg: str | None = ...,
     ) -> None: ...
     def assertJSONNotEqual(
         self,
         raw: str,
-        expected_data: Union[Dict[str, Any], List[Any], str, int, float, bool, None],
-        msg: Optional[str] = ...,
+        expected_data: dict[str, Any] | list[Any] | str | int | float | bool | None,
+        msg: str | None = ...,
     ) -> None: ...
-    def assertXMLEqual(
-        self, xml1: str, xml2: str, msg: Optional[str] = ...
-    ) -> None: ...
+    def assertXMLEqual(self, xml1: str, xml2: str, msg: str | None = ...) -> None: ...
     def assertXMLNotEqual(
-        self, xml1: str, xml2: str, msg: Optional[str] = ...
+        self, xml1: str, xml2: str, msg: str | None = ...
     ) -> None: ...
 
 class TransactionTestCase(SimpleTestCase):
@@ -186,9 +172,9 @@ class TransactionTestCase(SimpleTestCase):
         self,
         qs: _BaseQuerySet[Any],
         values: Iterable[Any],
-        transform: Union[Callable[..., Any], Type[str]] = ...,
+        transform: Callable[..., Any] | type[str] = ...,
         ordered: bool = ...,
-        msg: Optional[str] = ...,
+        msg: str | None = ...,
     ) -> None: ...
     @overload
     def assertNumQueries(
@@ -209,12 +195,12 @@ class TestCase(TransactionTestCase):
     def setUpTestData(cls) -> None: ...
 
 class CheckCondition:
-    conditions: Tuple[Tuple[Callable[..., Any], str]] = ...
+    conditions: tuple[tuple[Callable[..., Any], str]] = ...
     def __init__(self, *conditions: Any) -> None: ...
     def add_condition(
         self, condition: Callable[..., Any], reason: str
     ) -> CheckCondition: ...
-    def __get__(self, instance: None, cls: Type[TransactionTestCase] = ...) -> bool: ...
+    def __get__(self, instance: None, cls: type[TransactionTestCase] = ...) -> bool: ...
 
 def skipIfDBFeature(*features: Any) -> Callable[..., Any]: ...
 def skipUnlessDBFeature(*features: Any) -> Callable[..., Any]: ...
@@ -241,14 +227,14 @@ class LiveServerThread(threading.Thread):
     host: str = ...
     port: int = ...
     is_ready: threading.Event = ...
-    error: Optional[ImproperlyConfigured] = ...
-    static_handler: Type[WSGIHandler] = ...
-    connections_override: Dict[str, Any] = ...
+    error: ImproperlyConfigured | None = ...
+    static_handler: type[WSGIHandler] = ...
+    connections_override: dict[str, Any] = ...
     def __init__(
         self,
         host: str,
-        static_handler: Type[WSGIHandler],
-        connections_override: Dict[str, DatabaseWrapper] = ...,
+        static_handler: type[WSGIHandler],
+        connections_override: dict[str, DatabaseWrapper] = ...,
         port: int = ...,
     ) -> None: ...
     httpd: ThreadedWSGIServer = ...
@@ -258,7 +244,7 @@ class LiveServerTestCase(TransactionTestCase):
     live_server_url: ClassVar[str]
     host: str = ...
     port: int = ...
-    server_thread_class: Type[Any] = ...
+    server_thread_class: type[Any] = ...
     server_thread: Any
     static_handler: Any = ...
 

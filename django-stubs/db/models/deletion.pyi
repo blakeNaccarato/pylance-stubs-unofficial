@@ -1,14 +1,5 @@
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Iterable,
-    Optional,
-    Sequence,
-    Set,
-    Type,
-    Union,
-)
+from collections.abc import Callable, Collection, Iterable, Sequence
+from typing import Any
 
 from django.db import IntegrityError
 from django.db.models.base import Model
@@ -52,31 +43,31 @@ def RESTRICT(
     using: str,
 ) -> None: ...
 def SET(
-    value: Union[Any, Callable[[], Any]]
+    value: Any | Callable[[], Any]
 ) -> Callable[["Collector", Field[Any, Any], Sequence[Model], str], None]: ...
 def get_candidate_relations_to_delete(
     opts: Options[Any],
 ) -> Iterable[Field[Any, Any]]: ...
 
 class ProtectedError(IntegrityError):
-    protected_objects: Set[Model]
-    def __init__(self, msg: str, protected_objects: Set[Model]) -> None: ...
+    protected_objects: set[Model]
+    def __init__(self, msg: str, protected_objects: set[Model]) -> None: ...
 
 class RestrictedError(IntegrityError):
-    restricted_objects: Set[Model]
-    def __init__(self, msg: str, restricted_objects: Set[Model]) -> None: ...
+    restricted_objects: set[Model]
+    def __init__(self, msg: str, restricted_objects: set[Model]) -> None: ...
 
 class Collector:
     def __init__(self, using: str) -> None: ...
     def collect(
         self,
-        objs: Collection[Optional[Model]],
-        source: Optional[Type[Model]] = ...,
-        source_attr: Optional[str] = ...,
+        objs: Collection[Model | None],
+        source: type[Model] | None = ...,
+        source_attr: str | None = ...,
         **kwargs: Any
     ) -> None: ...
     def can_fast_delete(
         self,
-        objs: Union[Model, Iterable[Model]],
-        from_field: Optional[Field[Any, Any]] = ...,
+        objs: Model | Iterable[Model],
+        from_field: Field[Any, Any] | None = ...,
     ) -> bool: ...

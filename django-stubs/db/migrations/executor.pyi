@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Optional, Set, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 from django.db import DefaultConnectionProxy
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -15,23 +16,23 @@ class MigrationExecutor:
     progress_callback: Callable[..., Any] = ...
     def __init__(
         self,
-        connection: Optional[Union[DefaultConnectionProxy, BaseDatabaseWrapper]],
-        progress_callback: Optional[Callable[..., Any]] = ...,
+        connection: DefaultConnectionProxy | BaseDatabaseWrapper | None,
+        progress_callback: Callable[..., Any] | None = ...,
     ) -> None: ...
     def migration_plan(
         self,
-        targets: Union[List[Tuple[str, Optional[str]]], Set[Tuple[str, str]]],
+        targets: list[tuple[str, str | None]] | set[tuple[str, str]],
         clean_start: bool = ...,
-    ) -> List[Tuple[Migration, bool]]: ...
+    ) -> list[tuple[Migration, bool]]: ...
     def migrate(
         self,
-        targets: Optional[List[Tuple[str, Optional[str]]]],
-        plan: Optional[List[Tuple[Migration, bool]]] = ...,
-        state: Optional[ProjectState] = ...,
+        targets: list[tuple[str, str | None]] | None,
+        plan: list[tuple[Migration, bool]] | None = ...,
+        state: ProjectState | None = ...,
         fake: bool = ...,
         fake_initial: bool = ...,
     ) -> ProjectState: ...
-    def collect_sql(self, plan: List[Tuple[Migration, bool]]) -> List[str]: ...
+    def collect_sql(self, plan: list[tuple[Migration, bool]]) -> list[str]: ...
     def apply_migration(
         self,
         state: ProjectState,
@@ -44,5 +45,5 @@ class MigrationExecutor:
     ) -> ProjectState: ...
     def check_replacements(self) -> None: ...
     def detect_soft_applied(
-        self, project_state: Optional[ProjectState], migration: Migration
-    ) -> Tuple[bool, ProjectState]: ...
+        self, project_state: ProjectState | None, migration: Migration
+    ) -> tuple[bool, ProjectState]: ...

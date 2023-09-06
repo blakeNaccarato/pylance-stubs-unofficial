@@ -1,37 +1,27 @@
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterable,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-    overload,
-)
+from collections.abc import Callable, Iterable
+from typing import Any, Generic, TypeVar, overload
+from typing_extensions import Literal
 
 from django.db.models import Field, Transform
-from typing_extensions import Literal
 
 from .mixins import CheckFieldDefaultMixin
 
-_Choice = Tuple[Any, Any]
-_ChoiceNamedGroup = Tuple[str, Iterable[_Choice]]
-_FieldChoices = Iterable[Union[_Choice, _ChoiceNamedGroup]]
+_Choice = tuple[Any, Any]
+_ChoiceNamedGroup = tuple[str, Iterable[_Choice]]
+_FieldChoices = Iterable[_Choice | _ChoiceNamedGroup]
 _ValidatorCallable = Callable[..., None]
-_ErrorMessagesToOverride = Dict[str, Any]
+_ErrorMessagesToOverride = dict[str, Any]
 
-_T = TypeVar("_T", bound="Optional[Dict[str, Optional[str]]]")
+_T = TypeVar("_T", bound="dict[str, str | None] | None")
 
 class HStoreField(Generic[_T], CheckFieldDefaultMixin, Field[Any, Any]):
     @overload
     def __init__(
-        self: HStoreField[Dict[str, Optional[str]]],
-        verbose_name: Optional[Union[str, bytes]] = ...,
-        name: Optional[str] = ...,
+        self: HStoreField[dict[str, str | None]],
+        verbose_name: str | bytes | None = ...,
+        name: str | None = ...,
         primary_key: bool = ...,
-        max_length: Optional[int] = ...,
+        max_length: int | None = ...,
         unique: bool = ...,
         blank: bool = ...,
         null: Literal[False] = ...,
@@ -40,23 +30,23 @@ class HStoreField(Generic[_T], CheckFieldDefaultMixin, Field[Any, Any]):
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
-        unique_for_date: Optional[str] = ...,
-        unique_for_month: Optional[str] = ...,
-        unique_for_year: Optional[str] = ...,
-        choices: Optional[_FieldChoices] = ...,
+        unique_for_date: str | None = ...,
+        unique_for_month: str | None = ...,
+        unique_for_year: str | None = ...,
+        choices: _FieldChoices | None = ...,
         help_text: str = ...,
-        db_column: Optional[str] = ...,
-        db_tablespace: Optional[str] = ...,
+        db_column: str | None = ...,
+        db_tablespace: str | None = ...,
         validators: Iterable[_ValidatorCallable] = ...,
-        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+        error_messages: _ErrorMessagesToOverride | None = ...,
     ) -> None: ...
     @overload
     def __init__(
-        self: HStoreField[Optional[Dict[str, Optional[str]]]],
-        verbose_name: Optional[Union[str, bytes]] = ...,
-        name: Optional[str] = ...,
+        self: HStoreField[dict[str, str | None] | None],
+        verbose_name: str | bytes | None = ...,
+        name: str | None = ...,
         primary_key: bool = ...,
-        max_length: Optional[int] = ...,
+        max_length: int | None = ...,
         unique: bool = ...,
         blank: bool = ...,
         null: Literal[True] = ...,
@@ -65,19 +55,19 @@ class HStoreField(Generic[_T], CheckFieldDefaultMixin, Field[Any, Any]):
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
-        unique_for_date: Optional[str] = ...,
-        unique_for_month: Optional[str] = ...,
-        unique_for_year: Optional[str] = ...,
-        choices: Optional[_FieldChoices] = ...,
+        unique_for_date: str | None = ...,
+        unique_for_month: str | None = ...,
+        unique_for_year: str | None = ...,
+        choices: _FieldChoices | None = ...,
         help_text: str = ...,
-        db_column: Optional[str] = ...,
-        db_tablespace: Optional[str] = ...,
+        db_column: str | None = ...,
+        db_tablespace: str | None = ...,
         validators: Iterable[_ValidatorCallable] = ...,
-        error_messages: Optional[_ErrorMessagesToOverride] = ...,
+        error_messages: _ErrorMessagesToOverride | None = ...,
     ) -> None: ...
     def get_transform(self, name: Any) -> Any: ...
-    def __get__(self: HStoreField[_T], instance: Any, owner: Any) -> _T: ...
-    def __set__(self: HStoreField[_T], instance: Any, value: _T) -> None: ...
+    def __get__(self, instance: Any, owner: Any) -> _T: ...
+    def __set__(self, instance: Any, value: _T) -> None: ...
 
 class KeyTransform(Transform):
     def __init__(self, key_name: str, *args: Any, **kwargs: Any) -> None: ...

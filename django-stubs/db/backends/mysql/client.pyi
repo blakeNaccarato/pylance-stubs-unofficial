@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Union
-
 from django.db.backends.base.client import BaseDatabaseClient
 
 class DatabaseClient(BaseDatabaseClient):
@@ -7,6 +5,6 @@ class DatabaseClient(BaseDatabaseClient):
     @classmethod
     def settings_to_cmd_args(
         cls,
-        settings_dict: Dict[str, Optional[Union[Dict[str, Dict[str, str]], int, str]]],
-    ) -> List[str]: ...
+        settings_dict: dict[str, dict[str, dict[str, str]] | int | str | None],
+    ) -> list[str]: ...
     def runshell(self) -> None: ...

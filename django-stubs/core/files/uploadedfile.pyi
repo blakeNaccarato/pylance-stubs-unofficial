@@ -1,48 +1,48 @@
-from typing import IO, Any, Dict, Optional, Union
+from typing import IO, Any
 
 from django.core.files.base import File
 
 class UploadedFile(File):
-    content_type: Optional[str] = ...
-    charset: Optional[str] = ...
-    content_type_extra: Optional[Dict[str, str]] = ...
+    content_type: str | None = ...
+    charset: str | None = ...
+    content_type_extra: dict[str, str] | None = ...
     def __init__(
         self,
-        file: Optional[IO[Any]] = ...,
-        name: Optional[str] = ...,
-        content_type: Optional[str] = ...,
-        size: Optional[int] = ...,
-        charset: Optional[str] = ...,
-        content_type_extra: Optional[Dict[str, str]] = ...,
+        file: IO[Any] | None = ...,
+        name: str | None = ...,
+        content_type: str | None = ...,
+        size: int | None = ...,
+        charset: str | None = ...,
+        content_type_extra: dict[str, str] | None = ...,
     ) -> None: ...
 
 class TemporaryUploadedFile(UploadedFile):
     def __init__(
         self,
-        name: Optional[str],
-        content_type: Optional[str],
-        size: Optional[int],
-        charset: Optional[str],
-        content_type_extra: Optional[Dict[str, str]] = ...,
+        name: str | None,
+        content_type: str | None,
+        size: int | None,
+        charset: str | None,
+        content_type_extra: dict[str, str] | None = ...,
     ) -> None: ...
     def temporary_file_path(self) -> str: ...
 
 class InMemoryUploadedFile(UploadedFile):
-    field_name: Optional[str] = ...
+    field_name: str | None = ...
     def __init__(
         self,
         file: IO[Any],
-        field_name: Optional[str],
-        name: Optional[str],
-        content_type: Optional[str],
-        size: Optional[int],
-        charset: Optional[str],
-        content_type_extra: Dict[str, str] = ...,
+        field_name: str | None,
+        name: str | None,
+        content_type: str | None,
+        size: int | None,
+        charset: str | None,
+        content_type_extra: dict[str, str] = ...,
     ) -> None: ...
 
 class SimpleUploadedFile(InMemoryUploadedFile):
     def __init__(
-        self, name: str, content: Optional[Union[bytes, str]], content_type: str = ...
+        self, name: str, content: bytes | str | None, content_type: str = ...
     ) -> None: ...
     @classmethod
-    def from_dict(cls: Any, file_dict: Dict[str, Union[str, bytes]]) -> None: ...
+    def from_dict(cls, file_dict: dict[str, str | bytes]) -> None: ...

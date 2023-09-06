@@ -1,20 +1,21 @@
-from typing import Any, List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any
 
 from django.apps.config import AppConfig
 from django.contrib.admin.options import BaseModelAdmin
 from django.core.checks.messages import CheckMessage, Error
 
-_CheckError = Union[str, Error]
+_CheckError = str | Error
 
 def check_admin_app(
-    app_configs: Optional[Sequence[AppConfig]] = ..., **kwargs: Any
-) -> List[_CheckError]: ...
-def check_dependencies(**kwargs: Any) -> List[_CheckError]: ...
+    app_configs: Sequence[AppConfig] | None = ..., **kwargs: Any
+) -> list[_CheckError]: ...
+def check_dependencies(**kwargs: Any) -> list[_CheckError]: ...
 
 class BaseModelAdminChecks:
     def check(
         self, admin_obj: BaseModelAdmin[Any], **kwargs: Any
-    ) -> List[CheckMessage]: ...
+    ) -> list[CheckMessage]: ...
 
 class ModelAdminChecks(BaseModelAdminChecks): ...
 class InlineModelAdminChecks(BaseModelAdminChecks): ...
