@@ -88,10 +88,10 @@ compression : str or dict, default 'infer'
     If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
     Set to ``None`` for no decompression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
@@ -111,7 +111,7 @@ storage_options : dict, optional
 
 Returns
 -------
-DataFrame or StataReader
+DataFrame or pandas.api.typing.StataReader
 
 See Also
 --------

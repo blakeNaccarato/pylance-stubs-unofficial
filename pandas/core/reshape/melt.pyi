@@ -41,8 +41,6 @@ ignore_index : bool, default True
     If True, original index is ignored. If False, the original index is retained.
     Index labels will be repeated as necessary.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
 DataFrame

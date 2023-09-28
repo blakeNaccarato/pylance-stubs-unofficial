@@ -103,7 +103,7 @@ These examples all show factorize as a top-level method like
 ``pd.factorize(values)``. The results are identical for methods like
 :meth:`Series.factorize`.
 
->>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+>>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"))
 >>> codes
 array([0, 0, 1, 2, 0])
 >>> uniques
@@ -112,7 +112,8 @@ array(['b', 'a', 'c'], dtype=object)
 With ``sort=True``, the `uniques` will be sorted, and `codes` will be
 shuffled so that the relationship is the maintained.
 
->>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+>>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
+...                               sort=True)
 >>> codes
 array([1, 1, 0, 2, 1])
 >>> uniques
@@ -122,7 +123,7 @@ When ``use_na_sentinel=True`` (the default), missing values are indicated in
 the `codes` with the sentinel value ``-1`` and missing values are not
 included in `uniques`.
 
->>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+>>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
 >>> codes
 array([ 0, -1,  1,  2,  0])
 >>> uniques

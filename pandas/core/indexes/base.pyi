@@ -293,6 +293,14 @@ Returns
 -------
 Index
     Index with values cast to specified dtype.
+
+Examples
+--------
+>>> idx = pd.Index([1, 2, 3])
+>>> idx
+Index([1, 2, 3], dtype='int64')
+>>> idx.astype('float')
+Index([1.0, 2.0, 3.0], dtype='float64')
         """
         pass
     def take(

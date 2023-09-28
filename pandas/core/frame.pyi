@@ -1,6 +1,5 @@
 from collections.abc import (
     Callable,
-    Generator,
     Hashable,
     Iterable,
     Iterator,
@@ -14,7 +13,6 @@ from typing import (
     Any,
     ClassVar,
     Literal,
-    TypeVar,
     overload,
 )
 
@@ -119,8 +117,6 @@ from pandas._typing import (
     ValidationOptions,
     WriteBuffer,
     XMLParsers,
-    np_ndarray_bool,
-    np_ndarray_str,
     npt,
     num,
 )
@@ -130,7 +126,6 @@ from pandas.plotting import PlotAccessor
 
 _str = str
 _bool = bool
-_ScalarOrTupleT = TypeVar("_ScalarOrTupleT", bound=Scalar | tuple[Hashable, ...])
 
 class _iLocIndexerFrame(_iLocIndexer):
     @overload
@@ -601,20 +596,11 @@ Name: population, dtype: int64
     def T(self) -> DataFrame: ...
     def __getattr__(self, name: str) -> Series: ...
     @overload
-    def __getitem__(  # type: ignore[misc]
-        self,
-        key: Series
-        | DataFrame
-        | Index
-        | np_ndarray_str
-        | np_ndarray_bool
-        | list[_ScalarOrTupleT]
-        | Generator[_ScalarOrTupleT, None, None],
-    ) -> DataFrame: ...
+    def __getitem__(self, key: Scalar | tuple[Hashable, ...]) -> Series: ...  # type: ignore[misc]
     @overload
-    def __getitem__(self, key: slice) -> DataFrame: ...
+    def __getitem__(self, key: Iterable[Hashable] | slice) -> DataFrame: ...
     @overload
-    def __getitem__(self, key: Scalar | Hashable) -> Series: ...
+    def __getitem__(self, key: Hashable) -> Series: ...
     def isetitem(
         self, loc: int | Sequence[int], value: Scalar | ArrayLike | list[Any]
     ) -> None: ...
@@ -652,117 +638,7 @@ Name: population, dtype: int64
         limit: int | None = ...,
         fill_axis: Axis = ...,
         broadcast_axis: Axis | None = ...,
-    ) -> tuple[DataFrame, NDFrameT]:
-        """
-Align two objects on their axes with the specified join method.
-
-Join method is specified for each axis Index.
-
-Parameters
-----------
-other : DataFrame or Series
-join : {'outer', 'inner', 'left', 'right'}, default 'outer'
-axis : allowed axis of the other object, default None
-    Align on index (0), columns (1), or both (None).
-level : int or level name, default None
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level.
-copy : bool, default True
-    Always returns new objects. If copy=False and no reindexing is
-    required then original objects are returned.
-fill_value : scalar, default np.NaN
-    Value to use for missing values. Defaults to NaN, but can be any
-    "compatible" value.
-method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-    Method to use for filling holes in reindexed Series:
-
-    - pad / ffill: propagate last valid observation forward to next valid.
-    - backfill / bfill: use NEXT valid observation to fill gap.
-
-limit : int, default None
-    If method is specified, this is the maximum number of consecutive
-    NaN values to forward/backward fill. In other words, if there is
-    a gap with more than this number of consecutive NaNs, it will only
-    be partially filled. If method is not specified, this is the
-    maximum number of entries along the entire axis where NaNs will be
-    filled. Must be greater than 0 if not None.
-fill_axis : {0 or 'index', 1 or 'columns'}, default 0
-    Filling axis, method and limit.
-broadcast_axis : {0 or 'index', 1 or 'columns'}, default None
-    Broadcast values along this axis, if aligning two objects of
-    different dimensions.
-
-Returns
--------
-tuple of (DataFrame, type of other)
-    Aligned objects.
-
-Examples
---------
->>> df = pd.DataFrame(
-...     [[1, 2, 3, 4], [6, 7, 8, 9]], columns=["D", "B", "E", "A"], index=[1, 2]
-... )
->>> other = pd.DataFrame(
-...     [[10, 20, 30, 40], [60, 70, 80, 90], [600, 700, 800, 900]],
-...     columns=["A", "B", "C", "D"],
-...     index=[2, 3, 4],
-... )
->>> df
-   D  B  E  A
-1  1  2  3  4
-2  6  7  8  9
->>> other
-    A    B    C    D
-2   10   20   30   40
-3   60   70   80   90
-4  600  700  800  900
-
-Align on columns:
-
->>> left, right = df.align(other, join="outer", axis=1)
->>> left
-   A  B   C  D  E
-1  4  2 NaN  1  3
-2  9  7 NaN  6  8
->>> right
-    A    B    C    D   E
-2   10   20   30   40 NaN
-3   60   70   80   90 NaN
-4  600  700  800  900 NaN
-
-We can also align on the index:
-
->>> left, right = df.align(other, join="outer", axis=0)
->>> left
-    D    B    E    A
-1  1.0  2.0  3.0  4.0
-2  6.0  7.0  8.0  9.0
-3  NaN  NaN  NaN  NaN
-4  NaN  NaN  NaN  NaN
->>> right
-    A      B      C      D
-1    NaN    NaN    NaN    NaN
-2   10.0   20.0   30.0   40.0
-3   60.0   70.0   80.0   90.0
-4  600.0  700.0  800.0  900.0
-
-Finally, the default `axis=None` will align on both index and columns:
-
->>> left, right = df.align(other, join="outer", axis=None)
->>> left
-     A    B   C    D    E
-1  4.0  2.0 NaN  1.0  3.0
-2  9.0  7.0 NaN  6.0  8.0
-3  NaN  NaN NaN  NaN  NaN
-4  NaN  NaN NaN  NaN  NaN
->>> right
-       A      B      C      D   E
-1    NaN    NaN    NaN    NaN NaN
-2   10.0   20.0   30.0   40.0 NaN
-3   60.0   70.0   80.0   90.0 NaN
-4  600.0  700.0  800.0  900.0 NaN
-        """
-        pass
+    ) -> tuple[DataFrame, NDFrameT]: ...
     def reindex(
         self,
         labels: Axes | None = ...,
@@ -813,7 +689,7 @@ copy : bool, default True
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.
-fill_value : scalar, default np.NaN
+fill_value : scalar, default np.nan
     Value to use for missing values. Defaults to NaN, but can be any
     "compatible" value.
 limit : int, default None
@@ -1068,120 +944,7 @@ See the :ref:`user guide <basics.reindexing>` for more.
         limit: int = ...,
         downcast: dict | None = ...,
         inplace: Literal[True],
-    ) -> None:
-        """
-Fill NA/NaN values using the specified method.
-
-Parameters
-----------
-value : scalar, dict, Series, or DataFrame
-    Value to use to fill holes (e.g. 0), alternately a
-    dict/Series/DataFrame of values specifying which value to use for
-    each index (for a Series) or column (for a DataFrame).  Values not
-    in the dict/Series/DataFrame will not be filled. This value cannot
-    be a list.
-method : {'backfill', 'bfill', 'ffill', None}, default None
-    Method to use for filling holes in reindexed Series:
-
-    * ffill: propagate last valid observation forward to next valid.
-    * backfill / bfill: use next valid observation to fill gap.
-
-axis : {0 or 'index', 1 or 'columns'}
-    Axis along which to fill missing values. For `Series`
-    this parameter is unused and defaults to 0.
-inplace : bool, default False
-    If True, fill in-place. Note: this will modify any
-    other views on this object (e.g., a no-copy slice for a column in a
-    DataFrame).
-limit : int, default None
-    If method is specified, this is the maximum number of consecutive
-    NaN values to forward/backward fill. In other words, if there is
-    a gap with more than this number of consecutive NaNs, it will only
-    be partially filled. If method is not specified, this is the
-    maximum number of entries along the entire axis where NaNs will be
-    filled. Must be greater than 0 if not None.
-downcast : dict, default is None
-    A dict of item->dtype of what to downcast if possible,
-    or the string 'infer' which will try to downcast to an appropriate
-    equal type (e.g. float64 to int64 if possible).
-
-Returns
--------
-DataFrame or None
-    Object with missing values filled or None if ``inplace=True``.
-
-See Also
---------
-interpolate : Fill NaN values using interpolation.
-reindex : Conform object to new index.
-asfreq : Convert TimeSeries to specified frequency.
-
-Examples
---------
->>> df = pd.DataFrame([[np.nan, 2, np.nan, 0],
-...                    [3, 4, np.nan, 1],
-...                    [np.nan, np.nan, np.nan, np.nan],
-...                    [np.nan, 3, np.nan, 4]],
-...                   columns=list("ABCD"))
->>> df
-     A    B   C    D
-0  NaN  2.0 NaN  0.0
-1  3.0  4.0 NaN  1.0
-2  NaN  NaN NaN  NaN
-3  NaN  3.0 NaN  4.0
-
-Replace all NaN elements with 0s.
-
->>> df.fillna(0)
-     A    B    C    D
-0  0.0  2.0  0.0  0.0
-1  3.0  4.0  0.0  1.0
-2  0.0  0.0  0.0  0.0
-3  0.0  3.0  0.0  4.0
-
-We can also propagate non-null values forward or backward.
-
->>> df.fillna(method="ffill")
-     A    B   C    D
-0  NaN  2.0 NaN  0.0
-1  3.0  4.0 NaN  1.0
-2  3.0  4.0 NaN  1.0
-3  3.0  3.0 NaN  4.0
-
-Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
-2, and 3 respectively.
-
->>> values = {"A": 0, "B": 1, "C": 2, "D": 3}
->>> df.fillna(value=values)
-     A    B    C    D
-0  0.0  2.0  2.0  0.0
-1  3.0  4.0  2.0  1.0
-2  0.0  1.0  2.0  3.0
-3  0.0  3.0  2.0  4.0
-
-Only replace the first NaN element.
-
->>> df.fillna(value=values, limit=1)
-     A    B    C    D
-0  0.0  2.0  2.0  0.0
-1  3.0  4.0  NaN  1.0
-2  NaN  1.0  NaN  3.0
-3  NaN  3.0  NaN  4.0
-
-When filling using a DataFrame, replacement happens along
-the same column names and same indices
-
->>> df2 = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCE"))
->>> df.fillna(df2)
-     A    B    C    D
-0  0.0  2.0  0.0  0.0
-1  3.0  4.0  0.0  1.0
-2  0.0  0.0  0.0  NaN
-3  0.0  3.0  0.0  4.0
-
-Note that column D is not affected since it is not present in df2.
-        """
-        pass
+    ) -> None: ...
     @overload
     def fillna(
         self,
@@ -1214,296 +977,7 @@ Note that column D is not affected since it is not present in df2.
         regex=...,
         method: ReplaceMethod = ...,
         inplace: Literal[True],
-    ) -> None:
-        """
-Replace values given in `to_replace` with `value`.
-
-Values of the DataFrame are replaced with other values dynamically.
-
-This differs from updating with ``.loc`` or ``.iloc``, which require
-you to specify a location to update with some value.
-
-Parameters
-----------
-to_replace : str, regex, list, dict, Series, int, float, or None
-    How to find the values that will be replaced.
-
-    * numeric, str or regex:
-
-        - numeric: numeric values equal to `to_replace` will be
-          replaced with `value`
-        - str: string exactly matching `to_replace` will be replaced
-          with `value`
-        - regex: regexs matching `to_replace` will be replaced with
-          `value`
-
-    * list of str, regex, or numeric:
-
-        - First, if `to_replace` and `value` are both lists, they
-          **must** be the same length.
-        - Second, if ``regex=True`` then all of the strings in **both**
-          lists will be interpreted as regexs otherwise they will match
-          directly. This doesn't matter much for `value` since there
-          are only a few possible substitution regexes you can use.
-        - str, regex and numeric rules apply as above.
-
-    * dict:
-
-        - Dicts can be used to specify different replacement values
-          for different existing values. For example,
-          ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
-          'y' with 'z'. To use a dict in this way, the optional `value`
-          parameter should not be given.
-        - For a DataFrame a dict can specify that different values
-          should be replaced in different columns. For example,
-          ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
-          and the value 'z' in column 'b' and replaces these values
-          with whatever is specified in `value`. The `value` parameter
-          should not be ``None`` in this case. You can treat this as a
-          special case of passing two lists except that you are
-          specifying the column to search in.
-        - For a DataFrame nested dictionaries, e.g.,
-          ``{'a': {'b': np.nan}}``, are read as follows: look in column
-          'a' for the value 'b' and replace it with NaN. The optional `value`
-          parameter should not be specified to use a nested dict in this
-          way. You can nest regular expressions as well. Note that
-          column names (the top-level dictionary keys in a nested
-          dictionary) **cannot** be regular expressions.
-
-    * None:
-
-        - This means that the `regex` argument must be a string,
-          compiled regular expression, or list, dict, ndarray or
-          Series of such elements. If `value` is also ``None`` then
-          this **must** be a nested dictionary or Series.
-
-    See the examples section for examples of each of these.
-value : scalar, dict, list, str, regex, default None
-    Value to replace any values matching `to_replace` with.
-    For a DataFrame a dict of values can be used to specify which
-    value to use for each column (columns not in the dict will not be
-    filled). Regular expressions, strings and lists or dicts of such
-    objects are also allowed.
-
-inplace : bool, default False
-    Whether to modify the DataFrame rather than creating a new one.
-limit : int, default None
-    Maximum size gap to forward or backward fill.
-regex : bool or same types as `to_replace`, default False
-    Whether to interpret `to_replace` and/or `value` as regular
-    expressions. If this is ``True`` then `to_replace` *must* be a
-    string. Alternatively, this could be a regular expression or a
-    list, dict, or array of regular expressions in which case
-    `to_replace` must be ``None``.
-method : {'pad', 'ffill', 'bfill'}
-    The method to use when for replacement, when `to_replace` is a
-    scalar, list or tuple and `value` is ``None``.
-
-Returns
--------
-DataFrame
-    Object after replacement.
-
-Raises
-------
-AssertionError
-    * If `regex` is not a ``bool`` and `to_replace` is not
-      ``None``.
-
-TypeError
-    * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
-    * If `to_replace` is a ``dict`` and `value` is not a ``list``,
-      ``dict``, ``ndarray``, or ``Series``
-    * If `to_replace` is ``None`` and `regex` is not compilable
-      into a regular expression or is a list, dict, ndarray, or
-      Series.
-    * When replacing multiple ``bool`` or ``datetime64`` objects and
-      the arguments to `to_replace` does not match the type of the
-      value being replaced
-
-ValueError
-    * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
-      `value` but they are not the same length.
-
-See Also
---------
-DataFrame.fillna : Fill NA values.
-DataFrame.where : Replace values based on boolean condition.
-Series.str.replace : Simple string replacement.
-
-Notes
------
-* Regex substitution is performed under the hood with ``re.sub``. The
-  rules for substitution for ``re.sub`` are the same.
-* Regular expressions will only substitute on strings, meaning you
-  cannot provide, for example, a regular expression matching floating
-  point numbers and expect the columns in your frame that have a
-  numeric dtype to be matched. However, if those floating point
-  numbers *are* strings, then you can do this.
-* This method has *a lot* of options. You are encouraged to experiment
-  and play with this method to gain intuition about how it works.
-* When dict is used as the `to_replace` value, it is like
-  key(s) in the dict are the to_replace part and
-  value(s) in the dict are the value parameter.
-
-Examples
---------
-
-**Scalar `to_replace` and `value`**
-
->>> s = pd.Series([1, 2, 3, 4, 5])
->>> s.replace(1, 5)
-0    5
-1    2
-2    3
-3    4
-4    5
-dtype: int64
-
->>> df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
-...                    'B': [5, 6, 7, 8, 9],
-...                    'C': ['a', 'b', 'c', 'd', 'e']})
->>> df.replace(0, 5)
-    A  B  C
-0  5  5  a
-1  1  6  b
-2  2  7  c
-3  3  8  d
-4  4  9  e
-
-**List-like `to_replace`**
-
->>> df.replace([0, 1, 2, 3], 4)
-    A  B  C
-0  4  5  a
-1  4  6  b
-2  4  7  c
-3  4  8  d
-4  4  9  e
-
->>> df.replace([0, 1, 2, 3], [4, 3, 2, 1])
-    A  B  C
-0  4  5  a
-1  3  6  b
-2  2  7  c
-3  1  8  d
-4  4  9  e
-
->>> s.replace([1, 2], method='bfill')
-0    3
-1    3
-2    3
-3    4
-4    5
-dtype: int64
-
-**dict-like `to_replace`**
-
->>> df.replace({0: 10, 1: 100})
-        A  B  C
-0   10  5  a
-1  100  6  b
-2    2  7  c
-3    3  8  d
-4    4  9  e
-
->>> df.replace({'A': 0, 'B': 5}, 100)
-        A    B  C
-0  100  100  a
-1    1    6  b
-2    2    7  c
-3    3    8  d
-4    4    9  e
-
->>> df.replace({'A': {0: 100, 4: 400}})
-        A  B  C
-0  100  5  a
-1    1  6  b
-2    2  7  c
-3    3  8  d
-4  400  9  e
-
-**Regular expression `to_replace`**
-
->>> df = pd.DataFrame({'A': ['bat', 'foo', 'bait'],
-...                    'B': ['abc', 'bar', 'xyz']})
->>> df.replace(to_replace=r'^ba.$', value='new', regex=True)
-        A    B
-0   new  abc
-1   foo  new
-2  bait  xyz
-
->>> df.replace({'A': r'^ba.$'}, {'A': 'new'}, regex=True)
-        A    B
-0   new  abc
-1   foo  bar
-2  bait  xyz
-
->>> df.replace(regex=r'^ba.$', value='new')
-        A    B
-0   new  abc
-1   foo  new
-2  bait  xyz
-
->>> df.replace(regex={r'^ba.$': 'new', 'foo': 'xyz'})
-        A    B
-0   new  abc
-1   xyz  new
-2  bait  xyz
-
->>> df.replace(regex=[r'^ba.$', 'foo'], value='new')
-        A    B
-0   new  abc
-1   new  new
-2  bait  xyz
-
-Compare the behavior of ``s.replace({'a': None})`` and
-``s.replace('a', None)`` to understand the peculiarities
-of the `to_replace` parameter:
-
->>> s = pd.Series([10, 'a', 'a', 'b', 'a'])
-
-When one uses a dict as the `to_replace` value, it is like the
-value(s) in the dict are equal to the `value` parameter.
-``s.replace({'a': None})`` is equivalent to
-``s.replace(to_replace={'a': None}, value=None, method=None)``:
-
->>> s.replace({'a': None})
-0      10
-1    None
-2    None
-3       b
-4    None
-dtype: object
-
-When ``value`` is not explicitly passed and `to_replace` is a scalar, list
-or tuple, `replace` uses the method parameter (default 'pad') to do the
-replacement. So this is why the 'a' values are being replaced by 10
-in rows 1 and 2 and 'b' in row 4 in this case.
-
->>> s.replace('a')
-0    10
-1    10
-2    10
-3     b
-4     b
-dtype: object
-
-On the other hand, if ``None`` is explicitly passed for ``value``, it will
-be respected:
-
->>> s.replace('a', None)
-0      10
-1    None
-2    None
-3       b
-4    None
-dtype: object
-
-    .. versionchanged:: 1.4.0
-        Previously the explicit ``None`` was silently ignored.
-        """
-        pass
+    ) -> None: ...
     @overload
     def replace(
         self,
@@ -1545,8 +1019,13 @@ attribute is set in the index.
 
 Parameters
 ----------
-periods : int
+periods : int or Sequence
     Number of periods to shift. Can be positive or negative.
+    If an iterable of ints, the data will be shifted once by each int.
+    This is equivalent to shifting by one value at a time and
+    concatenating all resulting frames. The resulting columns will have
+    the shift suffixed to their column names. For multiple periods,
+    axis must not be 1.
 freq : DateOffset, tseries.offsets, timedelta, or str, optional
     Offset to use from the tseries module or time rule (e.g. 'EOM').
     If `freq` is specified then the index values are shifted but the
@@ -1563,8 +1042,9 @@ fill_value : object, optional
     For numeric data, ``np.nan`` is used.
     For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
     For extension dtypes, ``self.dtype.na_value`` is used.
-
-    .. versionchanged:: 1.1.0
+suffix : str, optional
+    If str and periods is an iterable, this is added after the column
+    name and before the shift value for each shifted column name.
 
 Returns
 -------
@@ -1630,6 +1110,14 @@ Examples
 2020-01-06    15    18    22
 2020-01-07    30    33    37
 2020-01-08    45    48    52
+
+>>> df['Col1'].shift(periods=[0, 1, 2])
+            Col1_0  Col1_1  Col1_2
+2020-01-01      10     NaN     NaN
+2020-01-02      20    10.0     NaN
+2020-01-03      15    20.0    10.0
+2020-01-04      30    15.0    20.0
+2020-01-05      45    30.0    15.0
         """
         pass
     @overload
@@ -1726,7 +1214,7 @@ Examples
 --------
 Show which entries in a DataFrame are NA.
 
->>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
 ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
 ...                              pd.Timestamp('1940-04-25')],
 ...                        name=['Alfred', 'Batman', ''],
@@ -1745,7 +1233,7 @@ Show which entries in a DataFrame are NA.
 
 Show which entries in a Series are NA.
 
->>> ser = pd.Series([5, 6, np.NaN])
+>>> ser = pd.Series([5, 6, np.nan])
 >>> ser
 0    5.0
 1    6.0
@@ -1789,7 +1277,7 @@ Examples
 --------
 Show which entries in a DataFrame are NA.
 
->>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
 ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
 ...                              pd.Timestamp('1940-04-25')],
 ...                        name=['Alfred', 'Batman', ''],
@@ -1808,7 +1296,7 @@ Show which entries in a DataFrame are NA.
 
 Show which entries in a Series are NA.
 
->>> ser = pd.Series([5, 6, np.NaN])
+>>> ser = pd.Series([5, 6, np.nan])
 >>> ser
 0    5.0
 1    6.0
@@ -1850,7 +1338,7 @@ Examples
 --------
 Show which entries in a DataFrame are not NA.
 
->>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
 ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
 ...                              pd.Timestamp('1940-04-25')],
 ...                        name=['Alfred', 'Batman', ''],
@@ -1869,7 +1357,7 @@ Show which entries in a DataFrame are not NA.
 
 Show which entries in a Series are not NA.
 
->>> ser = pd.Series([5, 6, np.NaN])
+>>> ser = pd.Series([5, 6, np.nan])
 >>> ser
 0    5.0
 1    6.0
@@ -1913,7 +1401,7 @@ Examples
 --------
 Show which entries in a DataFrame are not NA.
 
->>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
 ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
 ...                              pd.Timestamp('1940-04-25')],
 ...                        name=['Alfred', 'Batman', ''],
@@ -1932,7 +1420,7 @@ Show which entries in a DataFrame are not NA.
 
 Show which entries in a Series are not NA.
 
->>> ser = pd.Series([5, 6, np.NaN])
+>>> ser = pd.Series([5, 6, np.nan])
 >>> ser
 0    5.0
 1    6.0
@@ -2014,7 +1502,7 @@ by : str or list of str
       levels and/or column labels.
     - if `axis` is 1 or `'columns'` then `by` may contain column
       levels and/or index labels.
-axis : {0 or 'index', 1 or 'columns'}, default 0
+axis : "{0 or 'index', 1 or 'columns'}", default 0
      Axis to be sorted.
 ascending : bool or list of bool, default True
      Sort ascending vs. descending. Specify list for multiple sort
@@ -2039,8 +1527,6 @@ key : callable, optional
     this `key` function should be *vectorized*. It should expect a
     ``Series`` and return a Series with the same shape as the input.
     It will be applied to each column in `by` independently.
-
-    .. versionadded:: 1.1.0
 
 Returns
 -------
@@ -2230,8 +1716,6 @@ key : callable, optional
     ``Index`` and return an ``Index`` of the same shape. For MultiIndex
     inputs, the key is applied *per level*.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
 DataFrame or None
@@ -2395,13 +1879,24 @@ level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
 as_index : bool, default True
-    For aggregated output, return object with group labels as the
+    Return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is
-    effectively "SQL-style" grouped output.
+    effectively "SQL-style" grouped output. This argument has no effect
+    on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
-    group. Groupby preserves the order of rows within each group.
+    group. Groupby preserves the order of rows within each group. If False,
+    the groups will appear in the same order as they did in the original DataFrame.
+    This argument has no effect on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 
     .. versionchanged:: 2.0.0
 
@@ -2430,16 +1925,19 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
+
+    .. deprecated:: 2.1.0
+
+        The default value will change to True in a future version of pandas.
+
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
     If False, NA values will also be treated as the key in groups.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
-DataFrameGroupBy
+pandas.api.typing.DataFrameGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
@@ -2534,8 +2032,8 @@ a   13.0   13.0
 b   12.3  123.0
 NaN 12.3   33.0
 
-When using ``.apply()``, use ``group_keys`` to include or exclude the group keys.
-The ``group_keys`` argument defaults to ``True`` (include).
+When using ``.apply()``, use ``group_keys`` to include or exclude the
+group keys. The ``group_keys`` argument defaults to ``True`` (include).
 
 >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
 ...                               'Parrot', 'Parrot'],
@@ -2667,16 +2165,8 @@ Parameters
 ----------
 columns : str or object or a list of str
     Column to use to make new frame's columns.
-
-    .. versionchanged:: 1.1.0
-       Also accept list of columns names.
-
 index : str or object or a list of str, optional
     Column to use to make new frame's index. If not given, uses existing index.
-
-    .. versionchanged:: 1.1.0
-       Also accept list of index names.
-
 values : str, object or a list of the previous, optional
     Column(s) to use for populating new frame's values. If not
     specified, all remaining columns will be used and the result will
@@ -3155,7 +2645,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     Name: _str
     #
     # dunder methods
-    def __iter__(self) -> Iterator[float | _str]: ...
+    def __iter__(self) -> Iterator[Hashable]: ...
     # properties
     @property
     def at(self): ...  # Not sure what to do with this yet; look at source

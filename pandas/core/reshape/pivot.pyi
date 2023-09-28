@@ -129,16 +129,8 @@ Parameters
 data : DataFrame
 columns : str or object or a list of str
     Column to use to make new frame's columns.
-
-    .. versionchanged:: 1.1.0
-       Also accept list of columns names.
-
 index : str or object or a list of str, optional
     Column to use to make new frame's index. If not given, uses existing index.
-
-    .. versionchanged:: 1.1.0
-       Also accept list of index names.
-
 values : str, object or a list of the previous, optional
     Column(s) to use for populating new frame's values. If not
     specified, all remaining columns will be used and the result will

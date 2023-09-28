@@ -136,12 +136,6 @@ merge_ordered : Merge with optional filling/interpolation.
 merge_asof : Merge on nearest keys.
 DataFrame.join : Similar method using indices.
 
-Notes
------
-Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.23.0
-Support for merging named Series objects was added in version 0.24.0
-
 Examples
 --------
 >>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],

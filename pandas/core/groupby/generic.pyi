@@ -181,17 +181,16 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified. Only passing a single function is supported
-    with this engine.
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-    If the ``'numba'`` engine is chosen, the function must be
-    a user defined function with ``values`` and ``index`` as the
-    first and second arguments respectively in the function signature.
-    Each group's index will be passed to the user defined function
-    and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
-    .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -199,7 +198,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -208,7 +206,6 @@ engine_kwargs : dict, default None
       ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -475,6 +472,11 @@ axis : {0 or 'index', 1 or 'columns'}
     the same results as :meth:`.DataFrame.fillna`. When the
     :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
     or ``axis=1`` here will produce the same results.
+
+    .. deprecated:: 2.1.0
+        For axis=1, operate on the underlying object instead. Otherwise
+        the axis keyword is not necessary.
+
 inplace : bool, default False
     Broken. Do not set to True.
 limit : int, default None
@@ -488,6 +490,8 @@ downcast : dict, default is None
     A dict of item->dtype of what to downcast if possible,
     or the string 'infer' which will try to downcast to an appropriate
     equal type (e.g. float64 to int64 if possible).
+
+    .. deprecated:: 2.1.0
 
 Returns
 -------
@@ -537,7 +541,7 @@ Propagate non-null values forward or backward within each group along columns.
 
 Propagate non-null values forward or backward within each group along rows.
 
->>> df.groupby([0, 0, 1, 1], axis=1).fillna(method="ffill")
+>>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="ffill").T
    key    A    B    C
 0  0.0  0.0  2.0  2.0
 1  0.0  2.0  3.0  3.0
@@ -545,7 +549,7 @@ Propagate non-null values forward or backward within each group along rows.
 3  1.0  3.0  NaN  NaN
 4  1.0  1.0  NaN  NaN
 
->>> df.groupby([0, 0, 1, 1], axis=1).fillna(method="bfill")
+>>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="bfill").T
    key    A    B    C
 0  0.0  NaN  2.0  NaN
 1  0.0  2.0  3.0  NaN
@@ -645,8 +649,6 @@ backend : str, default None
 legend : bool, default False
     Whether to show the legend.
 
-    .. versionadded:: 1.1.0
-
 **kwargs
     All other plotting keyword arguments to be passed to
     :meth:`matplotlib.pyplot.hist`.
@@ -689,6 +691,10 @@ axis : {{0 or 'index', 1 or 'columns'}}, default None
     If axis is not provided, grouper's axis is used.
 
     .. versionchanged:: 2.0.0
+
+    .. deprecated:: 2.1.0
+        For axis=1, operate on the underlying object instead. Otherwise
+        the axis keyword is not necessary.
 
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
@@ -761,6 +767,10 @@ axis : {{0 or 'index', 1 or 'columns'}}, default None
     If axis is not provided, grouper's axis is used.
 
     .. versionchanged:: 2.0.0
+
+    .. deprecated:: 2.1.0
+        For axis=1, operate on the underlying object instead. Otherwise
+        the axis keyword is not necessary.
 
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
@@ -877,6 +887,10 @@ axis : {0 or 'index', 1 or 'columns', None}, default 0
 
     .. versionadded:: 2.0.0
 
+    .. deprecated:: 2.1.0
+        For axis=1, operate on the underlying object instead. Otherwise
+        the axis keyword is not necessary.
+
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 
@@ -964,6 +978,11 @@ indices : array-like
 axis : {0 or 'index', 1 or 'columns', None}, default 0
     The axis on which to select elements. ``0`` means that we are
     selecting rows, ``1`` means that we are selecting columns.
+
+    .. deprecated:: 2.1.0
+        For axis=1, operate on the underlying object instead. Otherwise
+        the axis keyword is not necessary.
+
 **kwargs
     For compatibility with :meth:`numpy.take`. Has no effect on the
     output.
