@@ -56,6 +56,7 @@ import xarray as xr
 
 from pandas._libs.missing import NAType
 from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     S1,
     AggFuncTypeBase,
@@ -152,7 +153,7 @@ class _iLocIndexerFrame(_iLocIndexer):
         | tuple[IndexType, int]
         | tuple[IndexType, IndexType]
         | tuple[int, IndexType],
-        value: Scalar | Series | DataFrame | np.ndarray | None,
+        value: Scalar | Series | DataFrame | np.ndarray | NAType | NaTType | None,
     ) -> None: ...
 
 class _LocIndexerFrame(_LocIndexer):
@@ -201,13 +202,13 @@ class _LocIndexerFrame(_LocIndexer):
     def __setitem__(
         self,
         idx: MaskType | StrLike | _IndexSliceTuple | list[ScalarT],
-        value: Scalar | ArrayLike | Series | DataFrame | list | None,
+        value: Scalar | NAType | NaTType | ArrayLike | Series | DataFrame | list | None,
     ) -> None: ...
     @overload
     def __setitem__(
         self,
         idx: tuple[_IndexSliceTuple, HashableT],
-        value: Scalar | ArrayLike | Series | list | None,
+        value: Scalar | NAType | NaTType | ArrayLike | Series | list | None,
     ) -> None: ...
 
 class DataFrame(NDFrame, OpsMixin):
@@ -1842,7 +1843,7 @@ d  4
     def groupby(
         self,
         by: Scalar,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -1875,6 +1876,12 @@ by : mapping, function, label, pd.Grouper or list of such
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1). For `Series` this parameter
     is unused and defaults to 0.
+
+    .. deprecated:: 2.1.0
+
+        Will be removed and behave like axis=0 in a future version.
+        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
+
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
@@ -2058,7 +2065,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by: DatetimeIndex,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -2071,7 +2078,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by: TimedeltaIndex,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -2084,7 +2091,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by: PeriodIndex,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -2097,7 +2104,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by: IntervalIndex[IntervalT],
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -2110,7 +2117,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by: MultiIndex | GroupByObjectNonScalar | None = ...,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -2123,7 +2130,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by: Series[SeriesByT],
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -2136,7 +2143,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by: CategoricalIndex | Index | Series,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         level: Level | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
@@ -2825,7 +2832,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     def expanding(
         self,
         min_periods: int = ...,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         method: CalculationMethod = ...,
     ) -> Expanding[DataFrame]: ...
     @overload
@@ -3144,7 +3151,7 @@ ValueError: Index contains duplicate entries, cannot reshape
         min_periods: int | None = ...,
         center: _bool = ...,
         on: Hashable | None = ...,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         closed: IntervalClosedType | None = ...,
         step: int | None = ...,
         method: CalculationMethod = ...,
@@ -3158,7 +3165,7 @@ ValueError: Index contains duplicate entries, cannot reshape
         min_periods: int | None = ...,
         center: _bool = ...,
         on: Hashable | None = ...,
-        axis: Axis = ...,
+        axis: AxisIndex = ...,
         closed: IntervalClosedType | None = ...,
         step: int | None = ...,
         method: CalculationMethod = ...,

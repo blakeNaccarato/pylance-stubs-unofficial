@@ -134,9 +134,11 @@ from pandas._typing import (
     Renamer,
     ReplaceMethod,
     Scalar,
+    ScalarT,
     SeriesByT,
     SortKind,
     StrDtypeArg,
+    StrLike,
     TimedeltaDtypeArg,
     TimestampConvention,
     TimestampDtypeArg,
@@ -167,7 +169,9 @@ class _iLocIndexerSeries(_iLocIndexer, Generic[S1]):
     def __setitem__(self, idx: int, value: S1 | None) -> None: ...
     @overload
     def __setitem__(
-        self, idx: Index | slice | np_ndarray_anyint, value: S1 | Series[S1] | None
+        self,
+        idx: Index | slice | np_ndarray_anyint | list[int],
+        value: S1 | Series[S1] | None,
     ) -> None: ...
 
 class _LocIndexerSeries(_LocIndexer, Generic[S1]):
@@ -207,7 +211,7 @@ class _LocIndexerSeries(_LocIndexer, Generic[S1]):
     @overload
     def __setitem__(
         self,
-        idx: list[int] | list[str] | list[str | int],
+        idx: MaskType | StrLike | _IndexSliceTuple | list[ScalarT],
         value: S1 | ArrayLike | Series[S1] | None,
     ) -> None: ...
 
@@ -360,7 +364,7 @@ class Series(IndexOpsMixin[S1], NDFrame):
         | tuple[Hashable | slice, ...],
     ) -> Self: ...
     @overload
-    def __getitem__(self, idx: int | _str) -> S1: ...
+    def __getitem__(self, idx: Scalar) -> S1: ...
     def __setitem__(self, key, value) -> None: ...
     def repeat(
         self, repeats: int | list[int], axis: AxisIndex | None = ...
@@ -573,6 +577,12 @@ by : mapping, function, label, pd.Grouper or list of such
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1). For `Series` this parameter
     is unused and defaults to 0.
+
+    .. deprecated:: 2.1.0
+
+        Will be removed and behave like axis=0 in a future version.
+        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
+
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
@@ -2563,12 +2573,10 @@ See the :ref:`user guide <basics.reindexing>` for more.
         min_periods: int = ...,
         adjust: _bool = ...,
         ignore_na: _bool = ...,
-        axis: AxisIndex = ...,
     ) -> ExponentialMovingWindow[Series]: ...
     def expanding(
         self,
         min_periods: int = ...,
-        axis: AxisIndex = ...,
         method: CalculationMethod = ...,
     ) -> Expanding[Series]: ...
     def floordiv(
@@ -2751,7 +2759,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         min_periods: int | None = ...,
         center: _bool = ...,
         on: _str | None = ...,
-        axis: AxisIndex = ...,
         closed: IntervalClosedType | None = ...,
         step: int | None = ...,
         method: CalculationMethod = ...,
@@ -2765,7 +2772,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         min_periods: int | None = ...,
         center: _bool = ...,
         on: _str | None = ...,
-        axis: AxisIndex = ...,
         closed: IntervalClosedType | None = ...,
         step: int | None = ...,
         method: CalculationMethod = ...,
