@@ -445,7 +445,6 @@ starting from the end of the object, just like with Python lists.
         convert_string: _bool = ...,
         convert_integer: _bool = ...,
         convert_boolean: _bool = ...,
-        convert_floating: _bool = ...,
         dtype_backend: DtypeBackend = ...,
     ) -> Self: ...
     def fillna(

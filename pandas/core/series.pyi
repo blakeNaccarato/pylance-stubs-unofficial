@@ -4,7 +4,6 @@ from collections.abc import (
     Iterable,
     Iterator,
     Mapping,
-    MutableMapping,
     Sequence,
 )
 from datetime import (
@@ -107,6 +106,7 @@ from pandas._typing import (
     ComplexDtypeArg,
     CompressionOptions,
     Dtype,
+    DtypeBackend,
     DtypeObj,
     FilePath,
     FillnaOptions,
@@ -536,11 +536,9 @@ class Series(IndexOpsMixin[S1], NDFrame):
     def items(self) -> Iterable[tuple[Hashable, S1]]: ...
     def keys(self) -> list: ...
     @overload
-    def to_dict(self, *, into: type[dict] = ...) -> dict[Any, S1]: ...
+    def to_dict(self) -> dict[Any, S1]: ...
     @overload
-    def to_dict(
-        self, *, into: type[MutableMapping] | MutableMapping
-    ) -> MutableMapping[Hashable, S1]: ...
+    def to_dict(self, into: type[Mapping] | Mapping) -> Mapping[Hashable, S1]: ...
     def to_frame(self, name: object | None = ...) -> DataFrame: ...
     @overload
     def groupby(
@@ -2179,6 +2177,14 @@ See the :ref:`user guide <basics.reindexing>` for more.
     ) -> Series: ...
     def copy(self, deep: _bool = ...) -> Series[S1]: ...
     def infer_objects(self) -> Series[S1]: ...
+    def convert_dtypes(
+        self,
+        infer_objects: _bool = ...,
+        convert_string: _bool = ...,
+        convert_integer: _bool = ...,
+        convert_boolean: _bool = ...,
+        dtype_backend: DtypeBackend = ...,
+    ) -> Series[S1]: ...
     @overload
     def ffill(
         self,
