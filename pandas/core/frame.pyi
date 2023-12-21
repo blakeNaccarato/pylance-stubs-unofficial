@@ -4,6 +4,7 @@ from collections.abc import (
     Iterable,
     Iterator,
     Mapping,
+    MutableMapping,
     Sequence,
 )
 import datetime
@@ -201,7 +202,7 @@ class _LocIndexerFrame(_LocIndexer):
     @overload
     def __setitem__(
         self,
-        idx: MaskType | StrLike | _IndexSliceTuple | list[ScalarT],
+        idx: MaskType | StrLike | _IndexSliceTuple | list[ScalarT] | IndexingInt,
         value: Scalar | NAType | NaTType | ArrayLike | Series | DataFrame | list | None,
     ) -> None: ...
     @overload
@@ -318,61 +319,67 @@ Name: population, dtype: int64
         na_value: Scalar = ...,
     ) -> np.ndarray: ...
     @overload
-    def to_dict(
+    def to_dict(  # type: ignore[misc]
         self,
         orient: Literal["records"],
-        into: Mapping | type[Mapping],
+        *,
+        into: MutableMapping | type[MutableMapping],
         index: Literal[True] = ...,
-    ) -> list[Mapping[Hashable, Any]]: ...
+    ) -> list[MutableMapping[Hashable, Any]]: ...
     @overload
     def to_dict(
         self,
         orient: Literal["records"],
-        into: None = ...,
+        *,
+        into: type[dict] = ...,
         index: Literal[True] = ...,
     ) -> list[dict[Hashable, Any]]: ...
     @overload
-    def to_dict(
+    def to_dict(  # type: ignore[misc]
         self,
         orient: Literal["dict", "list", "series", "index"],
-        into: Mapping | type[Mapping],
+        *,
+        into: MutableMapping | type[MutableMapping],
         index: Literal[True] = ...,
-    ) -> Mapping[Hashable, Any]: ...
+    ) -> MutableMapping[Hashable, Any]: ...
     @overload
-    def to_dict(
+    def to_dict(  # type: ignore[misc]
         self,
         orient: Literal["split", "tight"],
-        into: Mapping | type[Mapping],
+        *,
+        into: MutableMapping | type[MutableMapping],
         index: bool = ...,
-    ) -> Mapping[Hashable, Any]: ...
+    ) -> MutableMapping[Hashable, Any]: ...
     @overload
-    def to_dict(
+    def to_dict(  # type: ignore[misc]
         self,
         orient: Literal["dict", "list", "series", "index"] = ...,
         *,
-        into: Mapping | type[Mapping],
+        into: MutableMapping | type[MutableMapping],
         index: Literal[True] = ...,
-    ) -> Mapping[Hashable, Any]: ...
+    ) -> MutableMapping[Hashable, Any]: ...
     @overload
-    def to_dict(
+    def to_dict(  # type: ignore[misc]
         self,
         orient: Literal["split", "tight"] = ...,
         *,
-        into: Mapping | type[Mapping],
+        into: MutableMapping | type[MutableMapping],
         index: bool = ...,
-    ) -> Mapping[Hashable, Any]: ...
+    ) -> MutableMapping[Hashable, Any]: ...
     @overload
     def to_dict(
         self,
         orient: Literal["dict", "list", "series", "index"] = ...,
-        into: None = ...,
+        *,
+        into: type[dict] = ...,
         index: Literal[True] = ...,
     ) -> dict[Hashable, Any]: ...
     @overload
     def to_dict(
         self,
         orient: Literal["split", "tight"] = ...,
-        into: None = ...,
+        *,
+        into: type[dict] = ...,
         index: bool = ...,
     ) -> dict[Hashable, Any]: ...
     def to_gbq(
@@ -427,7 +434,7 @@ Name: population, dtype: int64
         self,
         path: FilePath | WriteBuffer[bytes],
         engine: ParquetEngine = ...,
-        compression: Literal["snappy", "gzip", "brotli"] | None = ...,
+        compression: Literal["snappy", "gzip", "brotli", "lz4", "zstd"] | None = ...,
         index: bool | None = ...,
         partition_cols: list[HashableT] | None = ...,
         storage_options: StorageOptions = ...,
@@ -438,7 +445,7 @@ Name: population, dtype: int64
         self,
         path: None = ...,
         engine: ParquetEngine = ...,
-        compression: Literal["snappy", "gzip", "brotli"] | None = ...,
+        compression: Literal["snappy", "gzip", "brotli", "lz4", "zstd"] | None = ...,
         index: bool | None = ...,
         partition_cols: list[HashableT] | None = ...,
         storage_options: StorageOptions = ...,
@@ -2497,7 +2504,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     ) -> DataFrame: ...
 
     # Add spacing between apply() overloads and remaining annotations
-    def applymap(
+    def map(
         self, func: Callable, na_action: Literal["ignore"] | None = ..., **kwargs
     ) -> DataFrame: ...
     def join(

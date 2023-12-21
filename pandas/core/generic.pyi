@@ -54,7 +54,7 @@ _bool = bool
 _str = str
 
 class NDFrame(indexing.IndexingMixin):
-    __hash__: ClassVar[None]  # type: ignore[assignment]
+    __hash__: ClassVar[None]  # type: ignore[assignment] # pyright: ignore[reportIncompatibleMethodOverride]
 
     def set_flags(
         self,
@@ -445,6 +445,7 @@ starting from the end of the object, just like with Python lists.
         convert_string: _bool = ...,
         convert_integer: _bool = ...,
         convert_boolean: _bool = ...,
+        convert_floating: _bool = ...,
         dtype_backend: DtypeBackend = ...,
     ) -> Self: ...
     def fillna(
