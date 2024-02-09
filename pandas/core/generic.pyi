@@ -19,7 +19,10 @@ from pandas import Index
 import pandas.core.indexing as indexing
 from pandas.core.series import Series
 import sqlalchemy.engine
-from typing_extensions import Self
+from typing_extensions import (
+    Concatenate,
+    Self,
+)
 
 from pandas._typing import (
     S1,
@@ -40,6 +43,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexLabel,
     Level,
+    P,
     ReplaceMethod,
     SortKind,
     StorageOptions,
@@ -74,7 +78,66 @@ class NDFrame(indexing.IndexingMixin):
     def ndim(self) -> int: ...
     @property
     def size(self) -> int: ...
-    def droplevel(self, level: Level, axis: AxisIndex = ...) -> Self: ...
+    def droplevel(self, level: Level, axis: AxisIndex = ...) -> Self:
+        """
+Return Series/DataFrame with requested index / column level(s) removed.
+
+Parameters
+----------
+level : int, str, or list-like
+    If a string is given, must be the name of a level
+    If list-like, elements must be names or positional indexes
+    of levels.
+
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    Axis along which the level(s) is removed:
+
+    * 0 or 'index': remove level(s) in column.
+    * 1 or 'columns': remove level(s) in row.
+
+    For `Series` this parameter is unused and defaults to 0.
+
+Returns
+-------
+Series/DataFrame
+    Series/DataFrame with requested index / column level(s) removed.
+
+Examples
+--------
+>>> df = pd.DataFrame([
+...     [1, 2, 3, 4],
+...     [5, 6, 7, 8],
+...     [9, 10, 11, 12]
+... ]).set_index([0, 1]).rename_axis(['a', 'b'])
+
+>>> df.columns = pd.MultiIndex.from_tuples([
+...     ('c', 'e'), ('d', 'f')
+... ], names=['level_1', 'level_2'])
+
+>>> df
+level_1   c   d
+level_2   e   f
+a b
+1 2      3   4
+5 6      7   8
+9 10    11  12
+
+>>> df.droplevel('a')
+level_1   c   d
+level_2   e   f
+b
+2        3   4
+6        7   8
+10      11  12
+
+>>> df.droplevel('level_2', axis=1)
+level_1   c   d
+a b
+1 2      3   4
+5 6      7   8
+9 10    11  12
+        """
+        pass
     def squeeze(self, axis=...): ...
     def equals(self, other: Series[S1]) -> _bool: ...
     def __neg__(self) -> Self: ...
@@ -107,7 +170,125 @@ class NDFrame(indexing.IndexingMixin):
         merge_cells: _bool = ...,
         inf_rep: _str = ...,
         freeze_panes: tuple[int, int] | None = ...,
-    ) -> None: ...
+    ) -> None:
+        """
+Write object to an Excel sheet.
+
+To write a single object to an Excel .xlsx file it is only necessary to
+specify a target file name. To write to multiple sheets it is necessary to
+create an `ExcelWriter` object with a target file name, and specify a sheet
+in the file to write to.
+
+Multiple sheets may be written to by specifying unique `sheet_name`.
+With all data written to the file it is necessary to save the changes.
+Note that creating an `ExcelWriter` object with a file name that already
+exists will result in the contents of the existing file being erased.
+
+Parameters
+----------
+excel_writer : path-like, file-like, or ExcelWriter object
+    File path or existing ExcelWriter.
+sheet_name : str, default 'Sheet1'
+    Name of sheet which will contain DataFrame.
+na_rep : str, default ''
+    Missing data representation.
+float_format : str, optional
+    Format string for floating point numbers. For example
+    ``float_format="%.2f"`` will format 0.1234 to 0.12.
+columns : sequence or list of str, optional
+    Columns to write.
+header : bool or list of str, default True
+    Write out the column names. If a list of string is given it is
+    assumed to be aliases for the column names.
+index : bool, default True
+    Write row names (index).
+index_label : str or sequence, optional
+    Column label for index column(s) if desired. If not specified, and
+    `header` and `index` are True, then the index names are used. A
+    sequence should be given if the DataFrame uses MultiIndex.
+startrow : int, default 0
+    Upper left cell row to dump data frame.
+startcol : int, default 0
+    Upper left cell column to dump data frame.
+engine : str, optional
+    Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
+    via the options ``io.excel.xlsx.writer`` or
+    ``io.excel.xlsm.writer``.
+
+merge_cells : bool, default True
+    Write MultiIndex and Hierarchical Rows as merged cells.
+inf_rep : str, default 'inf'
+    Representation for infinity (there is no native representation for
+    infinity in Excel).
+freeze_panes : tuple of int (length 2), optional
+    Specifies the one-based bottommost row and rightmost column that
+    is to be frozen.
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib.request.Request`` as header options. For other
+    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+    details, and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_.
+
+    .. versionadded:: 1.2.0
+engine_kwargs : dict, optional
+    Arbitrary keyword arguments passed to excel engine.
+
+See Also
+--------
+to_csv : Write DataFrame to a comma-separated values (csv) file.
+ExcelWriter : Class for writing DataFrame objects into excel sheets.
+read_excel : Read an Excel file into a pandas DataFrame.
+read_csv : Read a comma-separated values (csv) file into DataFrame.
+io.formats.style.Styler.to_excel : Add styles to Excel sheet.
+
+Notes
+-----
+For compatibility with :meth:`~DataFrame.to_csv`,
+to_excel serializes lists and dicts to strings before writing.
+
+Once a workbook has been saved it is not possible to write further
+data without rewriting the whole workbook.
+
+Examples
+--------
+
+Create, write to and save a workbook:
+
+>>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
+...                    index=['row 1', 'row 2'],
+...                    columns=['col 1', 'col 2'])
+>>> df1.to_excel("output.xlsx")  # doctest: +SKIP
+
+To specify the sheet name:
+
+>>> df1.to_excel("output.xlsx",
+...              sheet_name='Sheet_name_1')  # doctest: +SKIP
+
+If you wish to write to more than one sheet in the workbook, it is
+necessary to specify an ExcelWriter object:
+
+>>> df2 = df1.copy()
+>>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
+...     df1.to_excel(writer, sheet_name='Sheet_name_1')
+...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+
+ExcelWriter can also be used to append to an existing Excel file:
+
+>>> with pd.ExcelWriter('output.xlsx',
+...                     mode='a') as writer:  # doctest: +SKIP
+...     df1.to_excel(writer, sheet_name='Sheet_name_3')
+
+To set the library that is used to write the Excel file,
+you can pass the `engine` keyword (the default engine is
+automatically chosen depending on the file extension):
+
+>>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
+        """
+        pass
     def to_hdf(
         self,
         path_or_buf: FilePath | HDFStore,
@@ -174,7 +355,81 @@ class NDFrame(indexing.IndexingMixin):
         compression: CompressionOptions = ...,
         protocol: int = ...,
         storage_options: StorageOptions = ...,
-    ) -> None: ...
+    ) -> None:
+        """
+Pickle (serialize) object to file.
+
+Parameters
+----------
+path : str, path object, or file-like object
+    String, path object (implementing ``os.PathLike[str]``), or file-like
+    object implementing a binary ``write()`` function. File path where
+    the pickled object will be stored.
+compression : str or dict, default 'infer'
+    For on-the-fly compression of the output data. If 'infer' and 'path' is
+    path-like, then detect compression from the following extensions: '.gz',
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    Set to ``None`` for no compression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for faster compression and to create
+    a reproducible gzip archive:
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files.
+protocol : int
+    Int which indicates which protocol should be used by the pickler,
+    default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
+    values are 0, 1, 2, 3, 4, 5. A negative value for the protocol
+    parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
+
+    .. [1] https://docs.python.org/3/library/pickle.html.
+
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib.request.Request`` as header options. For other
+    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+    details, and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_.
+
+See Also
+--------
+read_pickle : Load pickled pandas object (or any object) from file.
+DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+DataFrame.to_sql : Write DataFrame to a SQL database.
+DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+
+Examples
+--------
+>>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})  # doctest: +SKIP
+>>> original_df  # doctest: +SKIP
+   foo  bar
+0    0    5
+1    1    6
+2    2    7
+3    3    8
+4    4    9
+>>> original_df.to_pickle("./dummy.pkl")  # doctest: +SKIP
+
+>>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+>>> unpickled_df  # doctest: +SKIP
+   foo  bar
+0    0    5
+1    1    6
+2    2    7
+3    3    8
+4    4    9
+        """
+        pass
     def to_clipboard(
         self, excel: _bool = ..., sep: _str | None = ..., **kwargs
     ) -> None: ...
@@ -254,7 +509,160 @@ class NDFrame(indexing.IndexingMixin):
         decimal: _str = ...,
         errors: _str = ...,
         storage_options: StorageOptions = ...,
-    ) -> None: ...
+    ) -> None:
+        """
+Write object to a comma-separated values (csv) file.
+
+Parameters
+----------
+path_or_buf : str, path object, file-like object, or None, default None
+    String, path object (implementing os.PathLike[str]), or file-like
+    object implementing a write() function. If None, the result is
+    returned as a string. If a non-binary file object is passed, it should
+    be opened with `newline=''`, disabling universal newlines. If a binary
+    file object is passed, `mode` might need to contain a `'b'`.
+sep : str, default ','
+    String of length 1. Field delimiter for the output file.
+na_rep : str, default ''
+    Missing data representation.
+float_format : str, Callable, default None
+    Format string for floating point numbers. If a Callable is given, it takes
+    precedence over other numeric formatting parameters, like decimal.
+columns : sequence, optional
+    Columns to write.
+header : bool or list of str, default True
+    Write out the column names. If a list of strings is given it is
+    assumed to be aliases for the column names.
+index : bool, default True
+    Write row names (index).
+index_label : str or sequence, or False, default None
+    Column label for index column(s) if desired. If None is given, and
+    `header` and `index` are True, then the index names are used. A
+    sequence should be given if the object uses MultiIndex. If
+    False do not print fields for index names. Use index_label=False
+    for easier importing in R.
+mode : {'w', 'x', 'a'}, default 'w'
+    Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
+    the file opening. Typical values include:
+
+    - 'w', truncate the file first.
+    - 'x', exclusive creation, failing if the file already exists.
+    - 'a', append to the end of file if it exists.
+
+encoding : str, optional
+    A string representing the encoding to use in the output file,
+    defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
+    is a non-binary file object.
+compression : str or dict, default 'infer'
+    For on-the-fly compression of the output data. If 'infer' and 'path_or_buf' is
+    path-like, then detect compression from the following extensions: '.gz',
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    Set to ``None`` for no compression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for faster compression and to create
+    a reproducible gzip archive:
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files.
+
+       May be a dict with key 'method' as compression mode
+       and other entries as additional compression options if
+       compression mode is 'zip'.
+
+       Passing compression options as keys in dict is
+       supported for compression modes 'gzip', 'bz2', 'zstd', and 'zip'.
+quoting : optional constant from csv module
+    Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+    then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+    will treat them as non-numeric.
+quotechar : str, default '\"'
+    String of length 1. Character used to quote fields.
+lineterminator : str, optional
+    The newline character or character sequence to use in the output
+    file. Defaults to `os.linesep`, which depends on the OS in which
+    this method is called ('\\n' for linux, '\\r\\n' for Windows, i.e.).
+
+    .. versionchanged:: 1.5.0
+
+        Previously was line_terminator, changed for consistency with
+        read_csv and the standard library 'csv' module.
+
+chunksize : int or None
+    Rows to write at a time.
+date_format : str, default None
+    Format string for datetime objects.
+doublequote : bool, default True
+    Control quoting of `quotechar` inside a field.
+escapechar : str, default None
+    String of length 1. Character used to escape `sep` and `quotechar`
+    when appropriate.
+decimal : str, default '.'
+    Character recognized as decimal separator. E.g. use ',' for
+    European data.
+errors : str, default 'strict'
+    Specifies how encoding and decoding errors are to be handled.
+    See the errors argument for :func:`open` for a full list
+    of options.
+
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib.request.Request`` as header options. For other
+    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+    details, and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_.
+
+Returns
+-------
+None or str
+    If path_or_buf is None, returns the resulting csv format as a
+    string. Otherwise returns None.
+
+See Also
+--------
+read_csv : Load a CSV file into a DataFrame.
+to_excel : Write DataFrame to an Excel file.
+
+Examples
+--------
+Create 'out.csv' containing 'df' without indices
+
+>>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+...                    'mask': ['red', 'purple'],
+...                    'weapon': ['sai', 'bo staff']})
+>>> df.to_csv('out.csv', index=False)  # doctest: +SKIP
+
+Create 'out.zip' containing 'out.csv'
+
+>>> df.to_csv(index=False)
+'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
+>>> compression_opts = dict(method='zip',
+...                         archive_name='out.csv')  # doctest: +SKIP
+>>> df.to_csv('out.zip', index=False,
+...           compression=compression_opts)  # doctest: +SKIP
+
+To write a csv file to a new folder or nested folder you will first
+need to create it using either Pathlib or os:
+
+>>> from pathlib import Path  # doctest: +SKIP
+>>> filepath = Path('folder/subfolder/out.csv')  # doctest: +SKIP
+>>> filepath.parent.mkdir(parents=True, exist_ok=True)  # doctest: +SKIP
+>>> df.to_csv(filepath)  # doctest: +SKIP
+
+>>> import os  # doctest: +SKIP
+>>> os.makedirs('folder/subfolder', exist_ok=True)  # doctest: +SKIP
+>>> df.to_csv('folder/subfolder/out.csv')  # doctest: +SKIP
+        """
+        pass
     @overload
     def to_csv(
         self,
@@ -282,81 +690,7 @@ class NDFrame(indexing.IndexingMixin):
     ) -> _str: ...
     def take(
         self, indices, axis=..., is_copy: _bool | None = ..., **kwargs
-    ) -> Self:
-        """
-Return the elements in the given *positional* indices along an axis.
-
-This means that we are not indexing according to actual values in
-the index attribute of the object. We are indexing according to the
-actual position of the element in the object.
-
-Parameters
-----------
-indices : array-like
-    An array of ints indicating which positions to take.
-axis : {0 or 'index', 1 or 'columns', None}, default 0
-    The axis on which to select elements. ``0`` means that we are
-    selecting rows, ``1`` means that we are selecting columns.
-    For `Series` this parameter is unused and defaults to 0.
-**kwargs
-    For compatibility with :meth:`numpy.take`. Has no effect on the
-    output.
-
-Returns
--------
-same type as caller
-    An array-like containing the elements taken from the object.
-
-See Also
---------
-DataFrame.loc : Select a subset of a DataFrame by labels.
-DataFrame.iloc : Select a subset of a DataFrame by positions.
-numpy.take : Take elements from an array along an axis.
-
-Examples
---------
->>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-...                    ('parrot', 'bird', 24.0),
-...                    ('lion', 'mammal', 80.5),
-...                    ('monkey', 'mammal', np.nan)],
-...                   columns=['name', 'class', 'max_speed'],
-...                   index=[0, 2, 3, 1])
->>> df
-     name   class  max_speed
-0  falcon    bird      389.0
-2  parrot    bird       24.0
-3    lion  mammal       80.5
-1  monkey  mammal        NaN
-
-Take elements at positions 0 and 3 along the axis 0 (default).
-
-Note how the actual indices selected (0 and 1) do not correspond to
-our selected indices 0 and 3. That's because we are selecting the 0th
-and 3rd rows, not rows whose indices equal 0 and 3.
-
->>> df.take([0, 3])
-     name   class  max_speed
-0  falcon    bird      389.0
-1  monkey  mammal        NaN
-
-Take elements at indices 1 and 2 along the axis 1 (column selection).
-
->>> df.take([1, 2], axis=1)
-    class  max_speed
-0    bird      389.0
-2    bird       24.0
-3  mammal       80.5
-1  mammal        NaN
-
-We may take elements using negative integers for positive indices,
-starting from the end of the object, just like with Python lists.
-
->>> df.take([-1, -2])
-     name   class  max_speed
-1  monkey  mammal        NaN
-3    lion  mammal       80.5
-        """
-        pass
+    ) -> Self: ...
     def __delitem__(self, idx: Hashable) -> None: ...
     def get(self, key: object, default: Dtype | None = ...) -> Dtype: ...
     def reindex_like(
@@ -426,8 +760,115 @@ starting from the end of the object, just like with Python lists.
     ) -> Self: ...
     def head(self, n: int = ...) -> Self: ...
     def tail(self, n: int = ...) -> Self: ...
+    @overload
     def pipe(
-        self, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        """
+Apply chainable functions that expect Series or DataFrames.
+
+Parameters
+----------
+func : function
+    Function to apply to the Series/DataFrame.
+    ``args``, and ``kwargs`` are passed into ``func``.
+    Alternatively a ``(callable, data_keyword)`` tuple where
+    ``data_keyword`` is a string indicating the keyword of
+    ``callable`` that expects the Series/DataFrame.
+*args : iterable, optional
+    Positional arguments passed into ``func``.
+**kwargs : mapping, optional
+    A dictionary of keyword arguments passed into ``func``.
+
+Returns
+-------
+the return type of ``func``.
+
+See Also
+--------
+DataFrame.apply : Apply a function along input axis of DataFrame.
+DataFrame.map : Apply a function elementwise on a whole DataFrame.
+Series.map : Apply a mapping correspondence on a
+    :class:`~pandas.Series`.
+
+Notes
+-----
+Use ``.pipe`` when chaining together functions that expect
+Series, DataFrames or GroupBy objects.
+
+Examples
+--------
+Constructing a income DataFrame from a dictionary.
+
+>>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
+>>> df = pd.DataFrame(data, columns=['Salary', 'Others'])
+>>> df
+   Salary  Others
+0    8000  1000.0
+1    9500     NaN
+2    5000  2000.0
+
+Functions that perform tax reductions on an income DataFrame.
+
+>>> def subtract_federal_tax(df):
+...     return df * 0.9
+>>> def subtract_state_tax(df, rate):
+...     return df * (1 - rate)
+>>> def subtract_national_insurance(df, rate, rate_increase):
+...     new_rate = rate + rate_increase
+...     return df * (1 - new_rate)
+
+Instead of writing
+
+>>> subtract_national_insurance(
+...     subtract_state_tax(subtract_federal_tax(df), rate=0.12),
+...     rate=0.05,
+...     rate_increase=0.02)  # doctest: +SKIP
+
+You can write
+
+>>> (
+...     df.pipe(subtract_federal_tax)
+...     .pipe(subtract_state_tax, rate=0.12)
+...     .pipe(subtract_national_insurance, rate=0.05, rate_increase=0.02)
+... )
+    Salary   Others
+0  5892.48   736.56
+1  6997.32      NaN
+2  3682.80  1473.12
+
+If you have a function that takes the data as (say) the second
+argument, pass a tuple indicating which keyword expects the
+data. For example, suppose ``national_insurance`` takes its data as ``df``
+in the second argument:
+
+>>> def subtract_national_insurance(rate, df, rate_increase):
+...     new_rate = rate + rate_increase
+...     return df * (1 - new_rate)
+>>> (
+...     df.pipe(subtract_federal_tax)
+...     .pipe(subtract_state_tax, rate=0.12)
+...     .pipe(
+...         (subtract_national_insurance, 'df'),
+...         rate=0.05,
+...         rate_increase=0.02
+...     )
+... )
+    Salary   Others
+0  5892.48   736.56
+1  6997.32      NaN
+2  3682.80  1473.12
+        """
+        pass
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T: ...
     def __finalize__(self, other, method=..., **kwargs) -> Self: ...
     def __setattr__(self, name: _str, value) -> None: ...
@@ -496,6 +937,8 @@ downcast : dict, default is None
     A dict of item->dtype of what to downcast if possible,
     or the string 'infer' which will try to downcast to an appropriate
     equal type (e.g. float64 to int64 if possible).
+
+    .. deprecated:: 2.2.0
 
 Returns
 -------
@@ -654,8 +1097,7 @@ limit : int, default None
     .. deprecated:: 2.1.0
 regex : bool or same types as `to_replace`, default False
     Whether to interpret `to_replace` and/or `value` as regular
-    expressions. If this is ``True`` then `to_replace` *must* be a
-    string. Alternatively, this could be a regular expression or a
+    expressions. Alternatively, this could be a regular expression or a
     list, dict, or array of regular expressions in which case
     `to_replace` must be ``None``.
 method : {'pad', 'ffill', 'bfill'}
@@ -874,13 +1316,279 @@ dtype: object
 
     .. versionchanged:: 1.4.0
         Previously the explicit ``None`` was silently ignored.
+
+When ``regex=True``, ``value`` is not ``None`` and `to_replace` is a string,
+the replacement will be applied in all columns of the DataFrame.
+
+>>> df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
+...                    'B': ['a', 'b', 'c', 'd', 'e'],
+...                    'C': ['f', 'g', 'h', 'i', 'j']})
+
+>>> df.replace(to_replace='^[a-g]', value='e', regex=True)
+    A  B  C
+0  0  e  e
+1  1  e  e
+2  2  e  h
+3  3  e  i
+4  4  e  j
+
+If ``value`` is not ``None`` and `to_replace` is a dictionary, the dictionary
+keys will be the DataFrame columns that the replacement will be applied.
+
+>>> df.replace(to_replace={'B': '^[a-c]', 'C': '^[h-j]'}, value='e', regex=True)
+    A  B  C
+0  0  e  f
+1  1  e  g
+2  2  e  e
+3  3  d  e
+4  4  e  e
         """
         pass
     def asof(self, where, subset=...): ...
-    def isna(self) -> NDFrame: ...
-    def isnull(self) -> NDFrame: ...
-    def notna(self) -> NDFrame: ...
-    def notnull(self) -> NDFrame: ...
+    def isna(self) -> NDFrame:
+        """
+Detect missing values.
+
+Return a boolean same-sized object indicating if the values are NA.
+NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
+values.
+Everything else gets mapped to False values. Characters such as empty
+strings ``''`` or :attr:`numpy.inf` are not considered NA values
+(unless you set ``pandas.options.mode.use_inf_as_na = True``).
+
+Returns
+-------
+Series/DataFrame
+    Mask of bool values for each element in Series/DataFrame that
+    indicates whether an element is an NA value.
+
+See Also
+--------
+Series/DataFrame.isnull : Alias of isna.
+Series/DataFrame.notna : Boolean inverse of isna.
+Series/DataFrame.dropna : Omit axes labels with missing values.
+isna : Top-level isna.
+
+Examples
+--------
+Show which entries in a DataFrame are NA.
+
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
+>>> df
+   age       born    name        toy
+0  5.0        NaT  Alfred       None
+1  6.0 1939-05-27  Batman  Batmobile
+2  NaN 1940-04-25              Joker
+
+>>> df.isna()
+     age   born   name    toy
+0  False   True  False   True
+1  False  False  False  False
+2   True  False  False  False
+
+Show which entries in a Series are NA.
+
+>>> ser = pd.Series([5, 6, np.nan])
+>>> ser
+0    5.0
+1    6.0
+2    NaN
+dtype: float64
+
+>>> ser.isna()
+0    False
+1    False
+2     True
+dtype: bool
+        """
+        pass
+    def isnull(self) -> NDFrame:
+        """
+Detect missing values.
+
+Return a boolean same-sized object indicating if the values are NA.
+NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
+values.
+Everything else gets mapped to False values. Characters such as empty
+strings ``''`` or :attr:`numpy.inf` are not considered NA values
+(unless you set ``pandas.options.mode.use_inf_as_na = True``).
+
+Returns
+-------
+Series/DataFrame
+    Mask of bool values for each element in Series/DataFrame that
+    indicates whether an element is an NA value.
+
+See Also
+--------
+Series/DataFrame.isnull : Alias of isna.
+Series/DataFrame.notna : Boolean inverse of isna.
+Series/DataFrame.dropna : Omit axes labels with missing values.
+isna : Top-level isna.
+
+Examples
+--------
+Show which entries in a DataFrame are NA.
+
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
+>>> df
+   age       born    name        toy
+0  5.0        NaT  Alfred       None
+1  6.0 1939-05-27  Batman  Batmobile
+2  NaN 1940-04-25              Joker
+
+>>> df.isna()
+     age   born   name    toy
+0  False   True  False   True
+1  False  False  False  False
+2   True  False  False  False
+
+Show which entries in a Series are NA.
+
+>>> ser = pd.Series([5, 6, np.nan])
+>>> ser
+0    5.0
+1    6.0
+2    NaN
+dtype: float64
+
+>>> ser.isna()
+0    False
+1    False
+2     True
+dtype: bool
+        """
+        pass
+    def notna(self) -> NDFrame:
+        """
+Detect existing (non-missing) values.
+
+Return a boolean same-sized object indicating if the values are not NA.
+Non-missing values get mapped to True. Characters such as empty
+strings ``''`` or :attr:`numpy.inf` are not considered NA values
+(unless you set ``pandas.options.mode.use_inf_as_na = True``).
+NA values, such as None or :attr:`numpy.NaN`, get mapped to False
+values.
+
+Returns
+-------
+Series/DataFrame
+    Mask of bool values for each element in Series/DataFrame that
+    indicates whether an element is not an NA value.
+
+See Also
+--------
+Series/DataFrame.notnull : Alias of notna.
+Series/DataFrame.isna : Boolean inverse of notna.
+Series/DataFrame.dropna : Omit axes labels with missing values.
+notna : Top-level notna.
+
+Examples
+--------
+Show which entries in a DataFrame are not NA.
+
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
+>>> df
+   age       born    name        toy
+0  5.0        NaT  Alfred       None
+1  6.0 1939-05-27  Batman  Batmobile
+2  NaN 1940-04-25              Joker
+
+>>> df.notna()
+     age   born  name    toy
+0   True  False  True  False
+1   True   True  True   True
+2  False   True  True   True
+
+Show which entries in a Series are not NA.
+
+>>> ser = pd.Series([5, 6, np.nan])
+>>> ser
+0    5.0
+1    6.0
+2    NaN
+dtype: float64
+
+>>> ser.notna()
+0     True
+1     True
+2    False
+dtype: bool
+        """
+        pass
+    def notnull(self) -> NDFrame:
+        """
+Detect existing (non-missing) values.
+
+Return a boolean same-sized object indicating if the values are not NA.
+Non-missing values get mapped to True. Characters such as empty
+strings ``''`` or :attr:`numpy.inf` are not considered NA values
+(unless you set ``pandas.options.mode.use_inf_as_na = True``).
+NA values, such as None or :attr:`numpy.NaN`, get mapped to False
+values.
+
+Returns
+-------
+Series/DataFrame
+    Mask of bool values for each element in Series/DataFrame that
+    indicates whether an element is not an NA value.
+
+See Also
+--------
+Series/DataFrame.notnull : Alias of notna.
+Series/DataFrame.isna : Boolean inverse of notna.
+Series/DataFrame.dropna : Omit axes labels with missing values.
+notna : Top-level notna.
+
+Examples
+--------
+Show which entries in a DataFrame are not NA.
+
+>>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
+...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+...                              pd.Timestamp('1940-04-25')],
+...                        name=['Alfred', 'Batman', ''],
+...                        toy=[None, 'Batmobile', 'Joker']))
+>>> df
+   age       born    name        toy
+0  5.0        NaT  Alfred       None
+1  6.0 1939-05-27  Batman  Batmobile
+2  NaN 1940-04-25              Joker
+
+>>> df.notna()
+     age   born  name    toy
+0   True  False  True  False
+1   True   True  True   True
+2  False   True  True   True
+
+Show which entries in a Series are not NA.
+
+>>> ser = pd.Series([5, 6, np.nan])
+>>> ser
+0    5.0
+1    6.0
+2    NaN
+dtype: float64
+
+>>> ser.notna()
+0     True
+1     True
+2    False
+dtype: bool
+        """
+        pass
     def clip(
         self, lower=..., upper=..., *, axis=..., inplace: _bool = ..., **kwargs
     ) -> Self: ...
@@ -891,7 +1599,113 @@ dtype: object
         how: Literal["start", "end"] | None = ...,
         normalize: _bool = ...,
         fill_value=...,
-    ) -> Self: ...
+    ) -> Self:
+        """
+Convert time series to specified frequency.
+
+Returns the original data conformed to a new index with the specified
+frequency.
+
+If the index of this Series/DataFrame is a :class:`~pandas.PeriodIndex`, the new index
+is the result of transforming the original index with
+:meth:`PeriodIndex.asfreq <pandas.PeriodIndex.asfreq>` (so the original index
+will map one-to-one to the new index).
+
+Otherwise, the new index will be equivalent to ``pd.date_range(start, end,
+freq=freq)`` where ``start`` and ``end`` are, respectively, the first and
+last entries in the original index (see :func:`pandas.date_range`). The
+values corresponding to any timesteps in the new index which were not present
+in the original index will be null (``NaN``), unless a method for filling
+such unknowns is provided (see the ``method`` parameter below).
+
+The :meth:`resample` method is more appropriate if an operation on each group of
+timesteps (such as an aggregate) is necessary to represent the data at the new
+frequency.
+
+Parameters
+----------
+freq : DateOffset or str
+    Frequency DateOffset or string.
+method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
+    Method to use for filling holes in reindexed Series (note this
+    does not fill NaNs that already were present):
+
+    * 'pad' / 'ffill': propagate last valid observation forward to next
+      valid
+    * 'backfill' / 'bfill': use NEXT valid observation to fill.
+how : {'start', 'end'}, default end
+    For PeriodIndex only (see PeriodIndex.asfreq).
+normalize : bool, default False
+    Whether to reset output index to midnight.
+fill_value : scalar, optional
+    Value to use for missing values, applied during upsampling (note
+    this does not fill NaNs that already were present).
+
+Returns
+-------
+Series/DataFrame
+    Series/DataFrame object reindexed to the specified frequency.
+
+See Also
+--------
+reindex : Conform DataFrame to new index with optional filling logic.
+
+Notes
+-----
+To learn more about the frequency strings, please see `this link
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+
+Examples
+--------
+Start by creating a series with 4 one minute timestamps.
+
+>>> index = pd.date_range('1/1/2000', periods=4, freq='min')
+>>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
+>>> df = pd.DataFrame({'s': series})
+>>> df
+                       s
+2000-01-01 00:00:00    0.0
+2000-01-01 00:01:00    NaN
+2000-01-01 00:02:00    2.0
+2000-01-01 00:03:00    3.0
+
+Upsample the series into 30 second bins.
+
+>>> df.asfreq(freq='30s')
+                       s
+2000-01-01 00:00:00    0.0
+2000-01-01 00:00:30    NaN
+2000-01-01 00:01:00    NaN
+2000-01-01 00:01:30    NaN
+2000-01-01 00:02:00    2.0
+2000-01-01 00:02:30    NaN
+2000-01-01 00:03:00    3.0
+
+Upsample again, providing a ``fill value``.
+
+>>> df.asfreq(freq='30s', fill_value=9.0)
+                       s
+2000-01-01 00:00:00    0.0
+2000-01-01 00:00:30    9.0
+2000-01-01 00:01:00    NaN
+2000-01-01 00:01:30    9.0
+2000-01-01 00:02:00    2.0
+2000-01-01 00:02:30    9.0
+2000-01-01 00:03:00    3.0
+
+Upsample again, providing a ``method``.
+
+>>> df.asfreq(freq='30s', method='bfill')
+                       s
+2000-01-01 00:00:00    0.0
+2000-01-01 00:00:30    NaN
+2000-01-01 00:01:00    NaN
+2000-01-01 00:01:30    2.0
+2000-01-01 00:02:00    2.0
+2000-01-01 00:02:30    3.0
+2000-01-01 00:03:00    3.0
+        """
+        pass
     def at_time(self, time, asof: _bool = ..., axis=...) -> Self: ...
     def between_time(
         self,
@@ -919,7 +1733,145 @@ dtype: object
         axis=...,
         level=...,
         try_cast: _bool = ...,
-    ): ...
+    ):
+        """
+Replace values where the condition is False.
+
+Parameters
+----------
+cond : bool Series/DataFrame, array-like, or callable
+    Where `cond` is True, keep the original value. Where
+    False, replace with corresponding value from `other`.
+    If `cond` is callable, it is computed on the Series/DataFrame and
+    should return boolean Series/DataFrame or array. The callable must
+    not change input Series/DataFrame (though pandas doesn't check it).
+other : scalar, Series/DataFrame, or callable
+    Entries where `cond` is False are replaced with
+    corresponding value from `other`.
+    If other is callable, it is computed on the Series/DataFrame and
+    should return scalar or Series/DataFrame. The callable must not
+    change input Series/DataFrame (though pandas doesn't check it).
+    If not specified, entries will be filled with the corresponding
+    NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
+    dtypes).
+inplace : bool, default False
+    Whether to perform the operation in place on the data.
+axis : int, default None
+    Alignment axis if needed. For `Series` this parameter is
+    unused and defaults to 0.
+level : int, default None
+    Alignment level if needed.
+
+Returns
+-------
+Same type as caller or None if ``inplace=True``.
+
+See Also
+--------
+:func:`DataFrame.mask` : Return an object of same shape as
+    self.
+
+Notes
+-----
+The where method is an application of the if-then idiom. For each
+element in the calling DataFrame, if ``cond`` is ``True`` the
+element is used; otherwise the corresponding element from the DataFrame
+``other`` is used. If the axis of ``other`` does not align with axis of
+``cond`` Series/DataFrame, the misaligned index positions will be filled with
+False.
+
+The signature for :func:`DataFrame.where` differs from
+:func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
+``np.where(m, df1, df2)``.
+
+For further details and examples see the ``where`` documentation in
+:ref:`indexing <indexing.where_mask>`.
+
+The dtype of the object takes precedence. The fill value is casted to
+the object's dtype, if this can be done losslessly.
+
+Examples
+--------
+>>> s = pd.Series(range(5))
+>>> s.where(s > 0)
+0    NaN
+1    1.0
+2    2.0
+3    3.0
+4    4.0
+dtype: float64
+>>> s.mask(s > 0)
+0    0.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+>>> s = pd.Series(range(5))
+>>> t = pd.Series([True, False])
+>>> s.where(t, 99)
+0     0
+1    99
+2    99
+3    99
+4    99
+dtype: int64
+>>> s.mask(t, 99)
+0    99
+1     1
+2    99
+3    99
+4    99
+dtype: int64
+
+>>> s.where(s > 1, 10)
+0    10
+1    10
+2    2
+3    3
+4    4
+dtype: int64
+>>> s.mask(s > 1, 10)
+0     0
+1     1
+2    10
+3    10
+4    10
+dtype: int64
+
+>>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+>>> df
+   A  B
+0  0  1
+1  2  3
+2  4  5
+3  6  7
+4  8  9
+>>> m = df % 3 == 0
+>>> df.where(m, -df)
+   A  B
+0  0 -1
+1 -2  3
+2 -4 -5
+3  6 -7
+4 -8  9
+>>> df.where(m, -df) == np.where(m, df, -df)
+      A     B
+0  True  True
+1  True  True
+2  True  True
+3  True  True
+4  True  True
+>>> df.where(m, -df) == df.mask(~m, -df)
+      A     B
+0  True  True
+1  True  True
+2  True  True
+3  True  True
+4  True  True
+        """
+        pass
     def mask(
         self,
         cond,
@@ -929,7 +1881,145 @@ dtype: object
         axis=...,
         level=...,
         try_cast: _bool = ...,
-    ): ...
+    ):
+        """
+Replace values where the condition is True.
+
+Parameters
+----------
+cond : bool Series/DataFrame, array-like, or callable
+    Where `cond` is False, keep the original value. Where
+    True, replace with corresponding value from `other`.
+    If `cond` is callable, it is computed on the Series/DataFrame and
+    should return boolean Series/DataFrame or array. The callable must
+    not change input Series/DataFrame (though pandas doesn't check it).
+other : scalar, Series/DataFrame, or callable
+    Entries where `cond` is True are replaced with
+    corresponding value from `other`.
+    If other is callable, it is computed on the Series/DataFrame and
+    should return scalar or Series/DataFrame. The callable must not
+    change input Series/DataFrame (though pandas doesn't check it).
+    If not specified, entries will be filled with the corresponding
+    NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
+    dtypes).
+inplace : bool, default False
+    Whether to perform the operation in place on the data.
+axis : int, default None
+    Alignment axis if needed. For `Series` this parameter is
+    unused and defaults to 0.
+level : int, default None
+    Alignment level if needed.
+
+Returns
+-------
+Same type as caller or None if ``inplace=True``.
+
+See Also
+--------
+:func:`DataFrame.where` : Return an object of same shape as
+    self.
+
+Notes
+-----
+The mask method is an application of the if-then idiom. For each
+element in the calling DataFrame, if ``cond`` is ``False`` the
+element is used; otherwise the corresponding element from the DataFrame
+``other`` is used. If the axis of ``other`` does not align with axis of
+``cond`` Series/DataFrame, the misaligned index positions will be filled with
+True.
+
+The signature for :func:`DataFrame.where` differs from
+:func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
+``np.where(m, df1, df2)``.
+
+For further details and examples see the ``mask`` documentation in
+:ref:`indexing <indexing.where_mask>`.
+
+The dtype of the object takes precedence. The fill value is casted to
+the object's dtype, if this can be done losslessly.
+
+Examples
+--------
+>>> s = pd.Series(range(5))
+>>> s.where(s > 0)
+0    NaN
+1    1.0
+2    2.0
+3    3.0
+4    4.0
+dtype: float64
+>>> s.mask(s > 0)
+0    0.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+>>> s = pd.Series(range(5))
+>>> t = pd.Series([True, False])
+>>> s.where(t, 99)
+0     0
+1    99
+2    99
+3    99
+4    99
+dtype: int64
+>>> s.mask(t, 99)
+0    99
+1     1
+2    99
+3    99
+4    99
+dtype: int64
+
+>>> s.where(s > 1, 10)
+0    10
+1    10
+2    2
+3    3
+4    4
+dtype: int64
+>>> s.mask(s > 1, 10)
+0     0
+1     1
+2    10
+3    10
+4    10
+dtype: int64
+
+>>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+>>> df
+   A  B
+0  0  1
+1  2  3
+2  4  5
+3  6  7
+4  8  9
+>>> m = df % 3 == 0
+>>> df.where(m, -df)
+   A  B
+0  0 -1
+1 -2  3
+2 -4 -5
+3  6 -7
+4 -8  9
+>>> df.where(m, -df) == np.where(m, df, -df)
+      A     B
+0  True  True
+1  True  True
+2  True  True
+3  True  True
+4  True  True
+>>> df.where(m, -df) == df.mask(~m, -df)
+      A     B
+0  True  True
+1  True  True
+2  True  True
+3  True  True
+4  True  True
+        """
+        pass
     def shift(self, periods=..., freq=..., axis=..., fill_value=...) -> Self:
         """
 Shift index by desired number of periods with an optional time `freq`.
@@ -1047,7 +2137,66 @@ Examples
     def slice_shift(self, periods: int = ..., axis=...) -> Self: ...
     def tshift(self, periods: int = ..., freq=..., axis=...) -> Self: ...
     def truncate(self, before=..., after=..., axis=..., copy: _bool = ...) -> Self: ...
-    def tz_convert(self, tz, axis=..., level=..., copy: _bool = ...) -> Self: ...
+    def tz_convert(self, tz, axis=..., level=..., copy: _bool = ...) -> Self:
+        """
+Convert tz-aware axis to target time zone.
+
+Parameters
+----------
+tz : str or tzinfo object or None
+    Target time zone. Passing ``None`` will convert to
+    UTC and remove the timezone information.
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The axis to convert
+level : int, str, default None
+    If axis is a MultiIndex, convert a specific level. Otherwise
+    must be None.
+copy : bool, default True
+    Also make a copy of the underlying data.
+
+    .. note::
+        The `copy` keyword will change behavior in pandas 3.0.
+        `Copy-on-Write
+        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+        will be enabled by default, which means that all methods with a
+        `copy` keyword will use a lazy copy mechanism to defer the copy and
+        ignore the `copy` keyword. The `copy` keyword will be removed in a
+        future version of pandas.
+
+        You can already get the future behavior and improvements through
+        enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+Returns
+-------
+Series/DataFrame
+    Object with time zone converted axis.
+
+Raises
+------
+TypeError
+    If the axis is tz-naive.
+
+Examples
+--------
+Change to another time zone:
+
+>>> s = pd.Series(
+...     [1],
+...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']),
+... )
+>>> s.tz_convert('Asia/Shanghai')
+2018-09-15 07:30:00+08:00    1
+dtype: int64
+
+Pass None to convert to UTC and get a tz-naive index:
+
+>>> s = pd.Series([1],
+...               index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+>>> s.tz_convert(None)
+2018-09-14 23:30:00    1
+dtype: int64
+        """
+        pass
     def tz_localize(
         self,
         tz,
@@ -1056,7 +2205,151 @@ Examples
         copy: _bool = ...,
         ambiguous=...,
         nonexistent: str = ...,
-    ) -> Self: ...
+    ) -> Self:
+        """
+Localize tz-naive index of a Series or DataFrame to target time zone.
+
+This operation localizes the Index. To localize the values in a
+timezone-naive Series, use :meth:`Series.dt.tz_localize`.
+
+Parameters
+----------
+tz : str or tzinfo or None
+    Time zone to localize. Passing ``None`` will remove the
+    time zone information and preserve local time.
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The axis to localize
+level : int, str, default None
+    If axis ia a MultiIndex, localize a specific level. Otherwise
+    must be None.
+copy : bool, default True
+    Also make a copy of the underlying data.
+
+    .. note::
+        The `copy` keyword will change behavior in pandas 3.0.
+        `Copy-on-Write
+        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+        will be enabled by default, which means that all methods with a
+        `copy` keyword will use a lazy copy mechanism to defer the copy and
+        ignore the `copy` keyword. The `copy` keyword will be removed in a
+        future version of pandas.
+
+        You can already get the future behavior and improvements through
+        enabling copy on write ``pd.options.mode.copy_on_write = True``
+ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+    When clocks moved backward due to DST, ambiguous times may arise.
+    For example in Central European Time (UTC+01), when going from
+    03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+    00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+    `ambiguous` parameter dictates how ambiguous times should be
+    handled.
+
+    - 'infer' will attempt to infer fall dst-transition hours based on
+      order
+    - bool-ndarray where True signifies a DST time, False designates
+      a non-DST time (note that this flag is only applicable for
+      ambiguous times)
+    - 'NaT' will return NaT where there are ambiguous times
+    - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+      times.
+nonexistent : str, default 'raise'
+    A nonexistent time does not exist in a particular timezone
+    where clocks moved forward due to DST. Valid values are:
+
+    - 'shift_forward' will shift the nonexistent time forward to the
+      closest existing time
+    - 'shift_backward' will shift the nonexistent time backward to the
+      closest existing time
+    - 'NaT' will return NaT where there are nonexistent times
+    - timedelta objects will shift nonexistent times by the timedelta
+    - 'raise' will raise an NonExistentTimeError if there are
+      nonexistent times.
+
+Returns
+-------
+Series/DataFrame
+    Same type as the input.
+
+Raises
+------
+TypeError
+    If the TimeSeries is tz-aware and tz is not None.
+
+Examples
+--------
+Localize local times:
+
+>>> s = pd.Series(
+...     [1],
+...     index=pd.DatetimeIndex(['2018-09-15 01:30:00']),
+... )
+>>> s.tz_localize('CET')
+2018-09-15 01:30:00+02:00    1
+dtype: int64
+
+Pass None to convert to tz-naive index and preserve local time:
+
+>>> s = pd.Series([1],
+...               index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+>>> s.tz_localize(None)
+2018-09-15 01:30:00    1
+dtype: int64
+
+Be careful with DST changes. When there is sequential data, pandas
+can infer the DST time:
+
+>>> s = pd.Series(range(7),
+...               index=pd.DatetimeIndex(['2018-10-28 01:30:00',
+...                                       '2018-10-28 02:00:00',
+...                                       '2018-10-28 02:30:00',
+...                                       '2018-10-28 02:00:00',
+...                                       '2018-10-28 02:30:00',
+...                                       '2018-10-28 03:00:00',
+...                                       '2018-10-28 03:30:00']))
+>>> s.tz_localize('CET', ambiguous='infer')
+2018-10-28 01:30:00+02:00    0
+2018-10-28 02:00:00+02:00    1
+2018-10-28 02:30:00+02:00    2
+2018-10-28 02:00:00+01:00    3
+2018-10-28 02:30:00+01:00    4
+2018-10-28 03:00:00+01:00    5
+2018-10-28 03:30:00+01:00    6
+dtype: int64
+
+In some cases, inferring the DST is impossible. In such cases, you can
+pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+>>> s = pd.Series(range(3),
+...               index=pd.DatetimeIndex(['2018-10-28 01:20:00',
+...                                       '2018-10-28 02:36:00',
+...                                       '2018-10-28 03:46:00']))
+>>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+2018-10-28 01:20:00+02:00    0
+2018-10-28 02:36:00+02:00    1
+2018-10-28 03:46:00+01:00    2
+dtype: int64
+
+If the DST transition causes nonexistent times, you can shift these
+dates forward or backward with a timedelta object or `'shift_forward'`
+or `'shift_backward'`.
+
+>>> s = pd.Series(range(2),
+...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
+...                                       '2015-03-29 03:30:00']))
+>>> s.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+2015-03-29 03:00:00+02:00    0
+2015-03-29 03:30:00+02:00    1
+dtype: int64
+>>> s.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+2015-03-29 01:59:59.999999999+01:00    0
+2015-03-29 03:30:00+02:00              1
+dtype: int64
+>>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
+2015-03-29 03:30:00+02:00    0
+2015-03-29 03:30:00+02:00    1
+dtype: int64
+        """
+        pass
     def abs(self) -> Self: ...
     def describe(
         self,
@@ -1068,5 +2361,149 @@ Examples
     def pct_change(
         self, periods=..., fill_method=..., limit=..., freq=..., **kwargs
     ) -> Self: ...
-    def first_valid_index(self): ...
-    def last_valid_index(self): ...
+    def first_valid_index(self):
+        """
+Return index for first non-NA value or None, if no non-NA value is found.
+
+Returns
+-------
+type of index
+
+Examples
+--------
+For Series:
+
+>>> s = pd.Series([None, 3, 4])
+>>> s.first_valid_index()
+1
+>>> s.last_valid_index()
+2
+
+>>> s = pd.Series([None, None])
+>>> print(s.first_valid_index())
+None
+>>> print(s.last_valid_index())
+None
+
+If all elements in Series are NA/null, returns None.
+
+>>> s = pd.Series()
+>>> print(s.first_valid_index())
+None
+>>> print(s.last_valid_index())
+None
+
+If Series is empty, returns None.
+
+For DataFrame:
+
+>>> df = pd.DataFrame({'A': [None, None, 2], 'B': [None, 3, 4]})
+>>> df
+     A      B
+0  NaN    NaN
+1  NaN    3.0
+2  2.0    4.0
+>>> df.first_valid_index()
+1
+>>> df.last_valid_index()
+2
+
+>>> df = pd.DataFrame({'A': [None, None, None], 'B': [None, None, None]})
+>>> df
+     A      B
+0  None   None
+1  None   None
+2  None   None
+>>> print(df.first_valid_index())
+None
+>>> print(df.last_valid_index())
+None
+
+If all elements in DataFrame are NA/null, returns None.
+
+>>> df = pd.DataFrame()
+>>> df
+Empty DataFrame
+Columns: []
+Index: []
+>>> print(df.first_valid_index())
+None
+>>> print(df.last_valid_index())
+None
+
+If DataFrame is empty, returns None.
+        """
+        pass
+    def last_valid_index(self):
+        """
+Return index for last non-NA value or None, if no non-NA value is found.
+
+Returns
+-------
+type of index
+
+Examples
+--------
+For Series:
+
+>>> s = pd.Series([None, 3, 4])
+>>> s.first_valid_index()
+1
+>>> s.last_valid_index()
+2
+
+>>> s = pd.Series([None, None])
+>>> print(s.first_valid_index())
+None
+>>> print(s.last_valid_index())
+None
+
+If all elements in Series are NA/null, returns None.
+
+>>> s = pd.Series()
+>>> print(s.first_valid_index())
+None
+>>> print(s.last_valid_index())
+None
+
+If Series is empty, returns None.
+
+For DataFrame:
+
+>>> df = pd.DataFrame({'A': [None, None, 2], 'B': [None, 3, 4]})
+>>> df
+     A      B
+0  NaN    NaN
+1  NaN    3.0
+2  2.0    4.0
+>>> df.first_valid_index()
+1
+>>> df.last_valid_index()
+2
+
+>>> df = pd.DataFrame({'A': [None, None, None], 'B': [None, None, None]})
+>>> df
+     A      B
+0  None   None
+1  None   None
+2  None   None
+>>> print(df.first_valid_index())
+None
+>>> print(df.last_valid_index())
+None
+
+If all elements in DataFrame are NA/null, returns None.
+
+>>> df = pd.DataFrame()
+>>> df
+Empty DataFrame
+Columns: []
+Index: []
+>>> print(df.first_valid_index())
+None
+>>> print(df.last_valid_index())
+None
+
+If DataFrame is empty, returns None.
+        """
+        pass

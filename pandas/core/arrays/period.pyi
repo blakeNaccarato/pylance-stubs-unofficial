@@ -42,7 +42,52 @@ class PeriodArray(DatetimeLikeArrayMixin, DatelikeOps):
     @property
     def end_time(self) -> Timestamp: ...
     def to_timestamp(self, freq: str | None = ..., how: str = ...) -> Timestamp: ...
-    def asfreq(self, freq: str | None = ..., how: str = ...) -> Period: ...
+    def asfreq(self, freq: str | None = ..., how: str = ...) -> Period:
+        """
+Convert the PeriodArray to the specified frequency `freq`.
+
+Equivalent to applying :meth:`pandas.Period.asfreq` with the given arguments
+to each :class:`~pandas.Period` in this PeriodArray.
+
+Parameters
+----------
+freq : str
+    A frequency.
+how : str {'E', 'S'}, default 'E'
+    Whether the elements should be aligned to the end
+    or start within pa period.
+
+    * 'E', 'END', or 'FINISH' for end,
+    * 'S', 'START', or 'BEGIN' for start.
+
+    January 31st ('END') vs. January 1st ('START') for example.
+
+Returns
+-------
+PeriodArray
+    The transformed PeriodArray with the new frequency.
+
+See Also
+--------
+PeriodIndex.asfreq: Convert each Period in a PeriodIndex to the given frequency.
+Period.asfreq : Convert a :class:`~pandas.Period` object to the given frequency.
+
+Examples
+--------
+>>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='Y')
+>>> pidx
+PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
+dtype='period[Y-DEC]')
+
+>>> pidx.asfreq('M')
+PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
+'2015-12'], dtype='period[M]')
+
+>>> pidx.asfreq('M', how='S')
+PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
+'2015-01'], dtype='period[M]')
+        """
+        pass
     def astype(self, dtype, copy: bool = ...): ...
 
 def raise_on_incompatible(left, right): ...

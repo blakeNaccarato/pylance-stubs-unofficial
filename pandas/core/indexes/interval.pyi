@@ -79,14 +79,37 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
     ) -> IntervalIndex[IntervalT]: ...
     @overload
     @classmethod
-    def from_breaks(
+    def from_breaks(  # pyright: ignore[reportOverlappingOverload]
         cls,
         breaks: _EdgesInt,
         closed: IntervalClosedType = ...,
         name: Hashable = ...,
         copy: bool = ...,
         dtype: IntervalDtype | None = ...,
-    ) -> IntervalIndex[Interval[int]]: ...
+    ) -> IntervalIndex[Interval[int]]:
+        """
+classmethod(function) -> method
+
+Convert a function to be a class method.
+
+A class method receives the class as implicit first argument,
+just like an instance method receives the instance.
+To declare a class method, use this idiom:
+
+  class C:
+      @classmethod
+      def f(cls, arg1, arg2, ...):
+          ...
+
+It can be called either on the class (e.g. C.f()) or on an instance
+(e.g. C().f()).  The instance is ignored except for its class.
+If a class method is called for a derived class, the derived class
+object is passed as the implied first argument.
+
+Class methods are different than C++ or Java static methods.
+If you want those, see the staticmethod builtin.
+        """
+        pass
     @overload
     @classmethod
     def from_breaks(
@@ -119,7 +142,7 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
     ) -> IntervalIndex[Interval[pd.Timedelta]]: ...
     @overload
     @classmethod
-    def from_arrays(
+    def from_arrays(  # pyright: ignore[reportOverlappingOverload]
         cls,
         left: _EdgesInt,
         right: _EdgesInt,
@@ -127,7 +150,30 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
         name: Hashable = ...,
         copy: bool = ...,
         dtype: IntervalDtype | None = ...,
-    ) -> IntervalIndex[Interval[int]]: ...
+    ) -> IntervalIndex[Interval[int]]:
+        """
+classmethod(function) -> method
+
+Convert a function to be a class method.
+
+A class method receives the class as implicit first argument,
+just like an instance method receives the instance.
+To declare a class method, use this idiom:
+
+  class C:
+      @classmethod
+      def f(cls, arg1, arg2, ...):
+          ...
+
+It can be called either on the class (e.g. C.f()) or on an instance
+(e.g. C().f()).  The instance is ignored except for its class.
+If a class method is called for a derived class, the derived class
+object is passed as the implied first argument.
+
+Class methods are different than C++ or Java static methods.
+If you want those, see the staticmethod builtin.
+        """
+        pass
     @overload
     @classmethod
     def from_arrays(
@@ -170,7 +216,30 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
         name: Hashable = ...,
         copy: bool = ...,
         dtype: IntervalDtype | None = ...,
-    ) -> IntervalIndex[pd.Interval[int]]: ...
+    ) -> IntervalIndex[pd.Interval[int]]:
+        """
+classmethod(function) -> method
+
+Convert a function to be a class method.
+
+A class method receives the class as implicit first argument,
+just like an instance method receives the instance.
+To declare a class method, use this idiom:
+
+  class C:
+      @classmethod
+      def f(cls, arg1, arg2, ...):
+          ...
+
+It can be called either on the class (e.g. C.f()) or on an instance
+(e.g. C().f()).  The instance is ignored except for its class.
+If a class method is called for a derived class, the derived class
+object is passed as the implied first argument.
+
+Class methods are different than C++ or Java static methods.
+If you want those, see the staticmethod builtin.
+        """
+        pass
     # Ignore misc here due to intentional overlap between int and float
     @overload
     @classmethod
@@ -212,7 +281,7 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
     ) -> IntervalIndex[pd.Interval[pd.Timedelta]]: ...
     def to_tuples(self, na_tuple: bool = ...) -> pd.Index: ...
     @overload
-    def __contains__(self, key: IntervalT) -> bool: ...  # type: ignore[misc] # pyright: ignore[reportOverlappingOverload]
+    def __contains__(self, key: IntervalT) -> bool: ...  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
     @overload
     def __contains__(self, key: object) -> Literal[False]: ...
     def astype(self, dtype: DtypeArg, copy: bool = ...) -> IntervalIndex: ...
@@ -238,7 +307,53 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
     ) -> npt.NDArray[np.intp]: ...
     def get_indexer_non_unique(
         self, target: Index
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+        """
+Compute indexer and mask for new index given the current index.
+
+The indexer should be then used as an input to ndarray.take to align the
+current data to the new index.
+
+Parameters
+----------
+target : IntervalIndex or list of Intervals
+
+Returns
+-------
+indexer : np.ndarray[np.intp]
+    Integers from 0 to n - 1 indicating that the index at these
+    positions matches the corresponding target values. Missing values
+    in the target are marked by -1.
+missing : np.ndarray[np.intp]
+    An indexer into the target of the values not found.
+    These correspond to the -1 in the indexer array.
+
+Examples
+--------
+>>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
+>>> index.get_indexer_non_unique(['b', 'b'])
+(array([1, 3, 4, 1, 3, 4]), array([], dtype=int64))
+
+In the example below there are no matched values.
+
+>>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
+>>> index.get_indexer_non_unique(['q', 'r', 't'])
+(array([-1, -1, -1]), array([0, 1, 2]))
+
+For this reason, the returned ``indexer`` contains only integers equal to -1.
+It demonstrates that there's no match between the index and the ``target``
+values at these positions. The mask [0, 1, 2] in the return value shows that
+the first, second, and third elements are missing.
+
+Notice that the return value is a tuple contains two items. In the example
+below the first item is an array of locations in ``index``. The second
+item is a mask shows that the first and third elements are missing.
+
+>>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
+>>> index.get_indexer_non_unique(['f', 'b', 's'])
+(array([-1,  1,  3,  4, -1]), array([0, 2]))
+        """
+        pass
     @property
     def left(self) -> Index: ...
     @property
@@ -289,17 +404,17 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
     @overload
     def __lt__(self, other: pd.Series[IntervalT]) -> pd.Series[bool]: ...
     @overload  # type: ignore[override]
-    def __eq__(self, other: IntervalT | IntervalIndex[IntervalT]) -> np_ndarray_bool: ...  # type: ignore[misc] # pyright: ignore[reportOverlappingOverload]
+    def __eq__(self, other: IntervalT | IntervalIndex[IntervalT]) -> np_ndarray_bool: ...  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
     @overload
-    def __eq__(self, other: pd.Series[IntervalT]) -> pd.Series[bool]: ...  # type: ignore[misc]
+    def __eq__(self, other: pd.Series[IntervalT]) -> pd.Series[bool]: ...  # type: ignore[overload-overlap]
     @overload
     def __eq__(  # pyright: ignore[reportIncompatibleMethodOverride]
         self, other: object
     ) -> Literal[False]: ...
     @overload  # type: ignore[override]
-    def __ne__(self, other: IntervalT | IntervalIndex[IntervalT]) -> np_ndarray_bool: ...  # type: ignore[misc] # pyright: ignore[reportOverlappingOverload]
+    def __ne__(self, other: IntervalT | IntervalIndex[IntervalT]) -> np_ndarray_bool: ...  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
     @overload
-    def __ne__(self, other: pd.Series[IntervalT]) -> pd.Series[bool]: ...  # type: ignore[misc]
+    def __ne__(self, other: pd.Series[IntervalT]) -> pd.Series[bool]: ...  # type: ignore[overload-overlap]
     @overload
     def __ne__(  # pyright: ignore[reportIncompatibleMethodOverride]
         self, other: object
@@ -308,7 +423,7 @@ class IntervalIndex(ExtensionIndex[IntervalT], IntervalMixin):
 # misc here because int and float overlap but interval has distinct types
 # int gets hit first and so the correct type is returned
 @overload
-def interval_range(  # type: ignore[misc] # pyright: ignore[reportOverlappingOverload]
+def interval_range(  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
     start: int = ...,
     end: int = ...,
     periods: int | None = ...,

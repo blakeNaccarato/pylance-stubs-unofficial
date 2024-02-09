@@ -3,6 +3,7 @@ from collections.abc import (
     Sequence,
 )
 from datetime import (
+    datetime,
     timedelta,
     tzinfo,
 )
@@ -59,13 +60,19 @@ class DatetimeIndex(DatetimeTimedeltaMixin[Timestamp], DatetimeIndexProperties):
     @overload
     def __add__(self, other: TimedeltaSeries) -> TimestampSeries: ...
     @overload
-    def __add__(self, other: Timedelta | TimedeltaIndex) -> DatetimeIndex: ...
+    def __add__(
+        self, other: timedelta | Timedelta | TimedeltaIndex
+    ) -> DatetimeIndex: ...
     @overload
     def __sub__(self, other: TimedeltaSeries) -> TimestampSeries: ...
     @overload
-    def __sub__(self, other: Timedelta | TimedeltaIndex) -> DatetimeIndex: ...
+    def __sub__(
+        self, other: timedelta | Timedelta | TimedeltaIndex
+    ) -> DatetimeIndex: ...
     @overload
-    def __sub__(self, other: Timestamp | DatetimeIndex) -> TimedeltaIndex: ...
+    def __sub__(
+        self, other: datetime | Timestamp | DatetimeIndex
+    ) -> TimedeltaIndex: ...
     def to_series(self, index=..., name=...) -> TimestampSeries: ...
     def snap(self, freq: str = ...): ...
     def get_value(self, series, key): ...
@@ -79,8 +86,46 @@ class DatetimeIndex(DatetimeTimedeltaMixin[Timestamp], DatetimeIndexProperties):
         self, start_time, end_time, include_start: bool = ..., include_end: bool = ...
     ): ...
     def to_perioddelta(self, freq) -> TimedeltaIndex: ...
-    def to_julian_date(self) -> Index[float]: ...
-    def isocalendar(self) -> DataFrame: ...
+    def to_julian_date(self) -> Index[float]:
+        """
+Convert Datetime Array to float64 ndarray of Julian Dates.
+0 Julian date is noon January 1, 4713 BC.
+https://en.wikipedia.org/wiki/Julian_day
+        """
+        pass
+    def isocalendar(self) -> DataFrame:
+        """
+Calculate year, week, and day according to the ISO 8601 standard.
+
+Returns
+-------
+DataFrame
+    With columns year, week and day.
+
+See Also
+--------
+Timestamp.isocalendar : Function return a 3-tuple containing ISO year,
+    week number, and weekday for the given Timestamp object.
+datetime.date.isocalendar : Return a named tuple object with
+    three components: year, week and weekday.
+
+Examples
+--------
+>>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+>>> idx.isocalendar()
+            year  week  day
+2019-12-29  2019    52    7
+2019-12-30  2020     1    1
+2019-12-31  2020     1    2
+2020-01-01  2020     1    3
+>>> idx.isocalendar().week
+2019-12-29    52
+2019-12-30     1
+2019-12-31     1
+2020-01-01     1
+Freq: D, Name: week, dtype: UInt32
+        """
+        pass
     @property
     def tzinfo(self) -> tzinfo | None: ...
     @property

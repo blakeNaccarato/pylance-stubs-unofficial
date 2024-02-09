@@ -1,5 +1,6 @@
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeVar, overload
+from typing_extensions import ParamSpec
 
 from django.template.base import FilterExpression, Origin, Parser, Token
 from django.template.context import Context
@@ -7,40 +8,103 @@ from django.utils.safestring import SafeText
 
 from .base import Node, Template
 
+T = TypeVar("T")
+P = ParamSpec("P")
+
 class InvalidTemplateLibrary(Exception): ...
 
 class Library:
     filters: dict[str, Callable[..., Any]] = ...
     tags: dict[str, Callable[..., Any]] = ...
     def __init__(self) -> None: ...
+
+    # Both arguments None
+    @overload
     def tag(
         self,
-        name: Callable[..., Any] | str | None = ...,
-        compile_function: Callable[..., Any] | str | None = ...,
-    ) -> Callable[..., Any]: ...
-    def tag_function(self, func: Callable[..., Any]) -> Callable[..., Any]: ...
+        name: None = ...,
+        compile_function: None = ...,
+    ) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
+    # Only name as function
+    @overload
+    def tag(
+        self,
+        name: Callable[P, T],
+        compile_function: None = ...,
+    ) -> Callable[P, T]: ...
+    # Only name as string
+    @overload
+    def tag(
+        self,
+        name: str,
+        compile_function: None = ...,
+    ) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
+    # Both arguments specified
+    @overload
+    def tag(
+        self,
+        name: str,
+        compile_function: Callable[P, T],
+    ) -> Callable[P, T]: ...
+    def tag_function(self, func: Callable[P, T]) -> Callable[P, T]: ...
+
+    # Both arguments None
+    @overload
     def filter(
         self,
-        name: Callable[..., Any] | str | None = ...,
-        filter_func: Callable[..., Any] | str | None = ...,
-        **flags: Any
-    ) -> Callable[..., Any]: ...
-    def filter_function(
-        self, func: Callable[..., Any], **flags: Any
-    ) -> Callable[..., Any]: ...
+        name: None = ...,
+        filter_func: None = ...,
+        **flags: Any,
+    ) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
+    # Only name as string
+    @overload
+    def filter(
+        self,
+        name: str = ...,
+        filter_func: None = ...,
+        **flags: Any,
+    ) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
+    # Only name as callable
+    @overload
+    def filter(
+        self,
+        name: Callable[P, T],
+        filter_func: None = ...,
+        **flags: Any,
+    ) -> Callable[P, T]: ...
+    # Both arguments
+    @overload
+    def filter(
+        self,
+        name: str,
+        filter_func: Callable[P, T],
+        **flags: Any,
+    ) -> Callable[P, T]: ...
+    def filter_function(self, func: Callable[P, T], **flags: Any) -> Callable[P, T]: ...
+
+    # func is None
+    @overload
     def simple_tag(
         self,
-        func: Callable[..., Any] | str | None = ...,
+        func: None = ...,
         takes_context: bool | None = ...,
         name: str | None = ...,
-    ) -> Callable[..., Any]: ...
+    ) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
+    # func is callable
+    @overload
+    def simple_tag(
+        self,
+        func: Callable[P, T],
+        takes_context: bool | None = ...,
+        name: str | None = ...,
+    ) -> Callable[P, T]: ...
     def inclusion_tag(
         self,
         filename: Template | str,
         func: None = ...,
         takes_context: bool | None = ...,
         name: str | None = ...,
-    ) -> Callable[..., Any]: ...
+    ) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
 
 class TagHelperNode(Node):
     func: Any = ...

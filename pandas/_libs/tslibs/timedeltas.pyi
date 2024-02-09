@@ -210,7 +210,7 @@ class Timedelta(timedelta):
     @overload
     def __rsub__(self, other: timedelta | Timedelta | np.timedelta64) -> Timedelta: ...
     @overload
-    def __rsub__(self, other: Timestamp | np.datetime64) -> Timestamp: ...
+    def __rsub__(self, other: dt.datetime | Timestamp | np.datetime64) -> Timestamp: ...  # type: ignore[misc]
     @overload
     def __rsub__(self, other: NaTType) -> NaTType: ...
     @overload
@@ -308,22 +308,22 @@ class Timedelta(timedelta):
     def __rtruediv__(self, other: timedelta | Timedelta | NaTType) -> float: ...
     # Override due to more types supported than dt.timedelta
     @overload
-    def __eq__(self, other: timedelta | Timedelta | np.timedelta64) -> bool: ...  # type: ignore[misc] # pyright: ignore[reportOverlappingOverload]
+    def __eq__(self, other: timedelta | Timedelta | np.timedelta64) -> bool: ...  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
     @overload
-    def __eq__(self, other: TimedeltaSeries | Series[pd.Timedelta]) -> Series[bool]: ...  # type: ignore[misc]
+    def __eq__(self, other: TimedeltaSeries | Series[pd.Timedelta]) -> Series[bool]: ...  # type: ignore[overload-overlap]
     @overload
-    def __eq__(  # type: ignore[misc]
+    def __eq__(  # type: ignore[overload-overlap]
         self, other: TimedeltaIndex | npt.NDArray[np.timedelta64]
     ) -> npt.NDArray[np.bool_]: ...
     @overload
     def __eq__(self, other: object) -> Literal[False]: ...
     # Override due to more types supported than dt.timedelta
     @overload
-    def __ne__(self, other: timedelta | Timedelta | np.timedelta64) -> bool: ...  # type: ignore[misc] # pyright: ignore[reportOverlappingOverload]
+    def __ne__(self, other: timedelta | Timedelta | np.timedelta64) -> bool: ...  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
     @overload
-    def __ne__(self, other: TimedeltaSeries | Series[pd.Timedelta]) -> Series[bool]: ...  # type: ignore[misc]
+    def __ne__(self, other: TimedeltaSeries | Series[pd.Timedelta]) -> Series[bool]: ...  # type: ignore[overload-overlap]
     @overload
-    def __ne__(  # type: ignore[misc]
+    def __ne__(  # type: ignore[overload-overlap]
         self, other: TimedeltaIndex | npt.NDArray[np.timedelta64]
     ) -> npt.NDArray[np.bool_]: ...
     @overload

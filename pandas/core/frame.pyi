@@ -7,8 +7,7 @@ from collections.abc import (
     MutableMapping,
     Sequence,
 )
-import datetime
-import datetime as _dt
+import datetime as dt
 from re import Pattern
 from typing import (
     Any,
@@ -114,7 +113,6 @@ from pandas._typing import (
     StorageOptions,
     StrLike,
     Suffixes,
-    T as TType,
     TimestampConvention,
     ValidationOptions,
     WriteBuffer,
@@ -176,7 +174,7 @@ class _LocIndexerFrame(_LocIndexer):
         ],
     ) -> DataFrame: ...
     @overload
-    def __getitem__(
+    def __getitem__(  # pyright: ignore[reportOverlappingOverload]
         self,
         idx: tuple[
             int | StrLike | tuple[Scalar, ...] | Callable[[DataFrame], ScalarT],
@@ -295,8 +293,10 @@ koala    80000
 Name: population, dtype: int64
         """
         pass
-    def iterrows(self) -> Iterable[tuple[Label, Series]]: ...
-    def itertuples(self, index: _bool = ..., name: _str | None = ...): ...
+    def iterrows(self) -> Iterable[tuple[Hashable, Series]]: ...
+    def itertuples(
+        self, index: _bool = ..., name: _str | None = ...
+    ) -> Iterable[_PandasNamedTuple]: ...
     def __len__(self) -> int: ...
     @overload
     def dot(self, other: DataFrame | ArrayLike) -> DataFrame: ...
@@ -319,7 +319,7 @@ Name: population, dtype: int64
         na_value: Scalar = ...,
     ) -> np.ndarray: ...
     @overload
-    def to_dict(  # type: ignore[misc]
+    def to_dict(  # type: ignore[overload-overlap]
         self,
         orient: Literal["records"],
         *,
@@ -335,7 +335,7 @@ Name: population, dtype: int64
         index: Literal[True] = ...,
     ) -> list[dict[Hashable, Any]]: ...
     @overload
-    def to_dict(  # type: ignore[misc]
+    def to_dict(  # type: ignore[overload-overlap]
         self,
         orient: Literal["dict", "list", "series", "index"],
         *,
@@ -343,7 +343,7 @@ Name: population, dtype: int64
         index: Literal[True] = ...,
     ) -> MutableMapping[Hashable, Any]: ...
     @overload
-    def to_dict(  # type: ignore[misc]
+    def to_dict(  # type: ignore[overload-overlap]
         self,
         orient: Literal["split", "tight"],
         *,
@@ -351,7 +351,7 @@ Name: population, dtype: int64
         index: bool = ...,
     ) -> MutableMapping[Hashable, Any]: ...
     @overload
-    def to_dict(  # type: ignore[misc]
+    def to_dict(  # type: ignore[overload-overlap]
         self,
         orient: Literal["dict", "list", "series", "index"] = ...,
         *,
@@ -359,7 +359,7 @@ Name: population, dtype: int64
         index: Literal[True] = ...,
     ) -> MutableMapping[Hashable, Any]: ...
     @overload
-    def to_dict(  # type: ignore[misc]
+    def to_dict(  # type: ignore[overload-overlap]
         self,
         orient: Literal["split", "tight"] = ...,
         *,
@@ -419,7 +419,7 @@ Name: population, dtype: int64
         convert_dates: dict[HashableT1, StataDateFormat] | None = ...,
         write_index: _bool = ...,
         byteorder: Literal["<", ">", "little", "big"] | None = ...,
-        time_stamp: _dt.datetime | None = ...,
+        time_stamp: dt.datetime | None = ...,
         data_label: _str | None = ...,
         variable_labels: dict[HashableT2, str] | None = ...,
         version: Literal[114, 117, 118, 119] | None = ...,
@@ -427,7 +427,123 @@ Name: population, dtype: int64
         compression: CompressionOptions = ...,
         storage_options: StorageOptions = ...,
         value_labels: dict[Hashable, dict[float, str]] | None = ...,
-    ) -> None: ...
+    ) -> None:
+        """
+Export DataFrame object to Stata dta format.
+
+Writes the DataFrame to a Stata dataset file.
+"dta" files contain a Stata dataset.
+
+Parameters
+----------
+path : str, path object, or buffer
+    String, path object (implementing ``os.PathLike[str]``), or file-like
+    object implementing a binary ``write()`` function.
+
+convert_dates : dict
+    Dictionary mapping columns containing datetime types to stata
+    internal format to use when writing the dates. Options are 'tc',
+    'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either an integer
+    or a name. Datetime columns that do not have a conversion type
+    specified will be converted to 'tc'. Raises NotImplementedError if
+    a datetime column has timezone information.
+write_index : bool
+    Write the index to Stata dataset.
+byteorder : str
+    Can be ">", "<", "little", or "big". default is `sys.byteorder`.
+time_stamp : datetime
+    A datetime to use as file creation date.  Default is the current
+    time.
+data_label : str, optional
+    A label for the data set.  Must be 80 characters or smaller.
+variable_labels : dict
+    Dictionary containing columns as keys and variable labels as
+    values. Each label must be 80 characters or smaller.
+version : {114, 117, 118, 119, None}, default 114
+    Version to use in the output dta file. Set to None to let pandas
+    decide between 118 or 119 formats depending on the number of
+    columns in the frame. Version 114 can be read by Stata 10 and
+    later. Version 117 can be read by Stata 13 or later. Version 118
+    is supported in Stata 14 and later. Version 119 is supported in
+    Stata 15 and later. Version 114 limits string variables to 244
+    characters or fewer while versions 117 and later allow strings
+    with lengths up to 2,000,000 characters. Versions 118 and 119
+    support Unicode characters, and version 119 supports more than
+    32,767 variables.
+
+    Version 119 should usually only be used when the number of
+    variables exceeds the capacity of dta format 118. Exporting
+    smaller datasets in format 119 may have unintended consequences,
+    and, as of November 2020, Stata SE cannot read version 119 files.
+
+convert_strl : list, optional
+    List of column names to convert to string columns to Stata StrL
+    format. Only available if version is 117.  Storing strings in the
+    StrL format can produce smaller dta files if strings have more than
+    8 characters and values are repeated.
+compression : str or dict, default 'infer'
+    For on-the-fly compression of the output data. If 'infer' and 'path' is
+    path-like, then detect compression from the following extensions: '.gz',
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    Set to ``None`` for no compression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for faster compression and to create
+    a reproducible gzip archive:
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files.
+
+    .. versionchanged:: 1.4.0 Zstandard support.
+
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib.request.Request`` as header options. For other
+    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+    details, and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_.
+
+value_labels : dict of dicts
+    Dictionary containing columns as keys and dictionaries of column value
+    to labels as values. Labels for a single variable must be 32,000
+    characters or smaller.
+
+    .. versionadded:: 1.4.0
+
+Raises
+------
+NotImplementedError
+    * If datetimes contain timezone information
+    * Column dtype is not representable in Stata
+ValueError
+    * Columns listed in convert_dates are neither datetime64[ns]
+      or datetime.datetime
+    * Column listed in convert_dates is not in DataFrame
+    * Categorical label contains more than 32,000 characters
+
+See Also
+--------
+read_stata : Import Stata data files.
+io.stata.StataWriter : Low-level writer for Stata data files.
+io.stata.StataWriter117 : Low-level writer for version 117 files.
+
+Examples
+--------
+>>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+...                               'parrot'],
+...                    'speed': [350, 18, 361, 15]})
+>>> df.to_stata('animals.dta')  # doctest: +SKIP
+        """
+        pass
     def to_feather(self, path: FilePath | WriteBuffer[bytes], **kwargs) -> None: ...
     @overload
     def to_parquet(
@@ -439,7 +555,95 @@ Name: population, dtype: int64
         partition_cols: list[HashableT] | None = ...,
         storage_options: StorageOptions = ...,
         **kwargs: Any,
-    ) -> None: ...
+    ) -> None:
+        """
+Write a DataFrame to the binary parquet format.
+
+This function writes the dataframe as a `parquet file
+<https://parquet.apache.org/>`_. You can choose different parquet
+backends, and have the option of compression. See
+:ref:`the user guide <io.parquet>` for more details.
+
+Parameters
+----------
+path : str, path object, file-like object, or None, default None
+    String, path object (implementing ``os.PathLike[str]``), or file-like
+    object implementing a binary ``write()`` function. If None, the result is
+    returned as bytes. If a string or path, it will be used as Root Directory
+    path when writing a partitioned dataset.
+engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+    Parquet library to use. If 'auto', then the option
+    ``io.parquet.engine`` is used. The default ``io.parquet.engine``
+    behavior is to try 'pyarrow', falling back to 'fastparquet' if
+    'pyarrow' is unavailable.
+compression : str or None, default 'snappy'
+    Name of the compression to use. Use ``None`` for no compression.
+    Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
+index : bool, default None
+    If ``True``, include the dataframe's index(es) in the file output.
+    If ``False``, they will not be written to the file.
+    If ``None``, similar to ``True`` the dataframe's index(es)
+    will be saved. However, instead of being saved as values,
+    the RangeIndex will be stored as a range in the metadata so it
+    doesn't require much space and is faster. Other indexes will
+    be included as columns in the file output.
+partition_cols : list, optional, default None
+    Column names by which to partition the dataset.
+    Columns are partitioned in the order they are given.
+    Must be None if path is not a string.
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib.request.Request`` as header options. For other
+    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+    details, and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_.
+
+**kwargs
+    Additional arguments passed to the parquet library. See
+    :ref:`pandas io <io.parquet>` for more details.
+
+Returns
+-------
+bytes if no path argument is provided else None
+
+See Also
+--------
+read_parquet : Read a parquet file.
+DataFrame.to_orc : Write an orc file.
+DataFrame.to_csv : Write a csv file.
+DataFrame.to_sql : Write to a sql table.
+DataFrame.to_hdf : Write to hdf.
+
+Notes
+-----
+This function requires either the `fastparquet
+<https://pypi.org/project/fastparquet>`_ or `pyarrow
+<https://arrow.apache.org/docs/python/>`_ library.
+
+Examples
+--------
+>>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+>>> df.to_parquet('df.parquet.gzip',
+...               compression='gzip')  # doctest: +SKIP
+>>> pd.read_parquet('df.parquet.gzip')  # doctest: +SKIP
+   col1  col2
+0     1     3
+1     2     4
+
+If you want to get a buffer to the parquet content you can use a io.BytesIO
+object, as long as you don't use partition_cols, which creates multiple files.
+
+>>> import io
+>>> f = io.BytesIO()
+>>> df.to_parquet(f)
+>>> f.seek(0)
+0
+>>> content = f.read()
+        """
+        pass
     @overload
     def to_parquet(
         self,
@@ -574,7 +778,170 @@ Name: population, dtype: int64
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
         compression: CompressionOptions = ...,
         storage_options: StorageOptions = ...,
-    ) -> None: ...
+    ) -> None:
+        """
+Render a DataFrame to an XML document.
+
+.. versionadded:: 1.3.0
+
+Parameters
+----------
+path_or_buffer : str, path object, file-like object, or None, default None
+    String, path object (implementing ``os.PathLike[str]``), or file-like
+    object implementing a ``write()`` function. If None, the result is returned
+    as a string.
+index : bool, default True
+    Whether to include index in XML document.
+root_name : str, default 'data'
+    The name of root element in XML document.
+row_name : str, default 'row'
+    The name of row element in XML document.
+na_rep : str, optional
+    Missing data representation.
+attr_cols : list-like, optional
+    List of columns to write as attributes in row element.
+    Hierarchical columns will be flattened with underscore
+    delimiting the different levels.
+elem_cols : list-like, optional
+    List of columns to write as children in row element. By default,
+    all columns output as children of row element. Hierarchical
+    columns will be flattened with underscore delimiting the
+    different levels.
+namespaces : dict, optional
+    All namespaces to be defined in root element. Keys of dict
+    should be prefix names and values of dict corresponding URIs.
+    Default namespaces should be given empty string key. For
+    example, ::
+
+        namespaces = {"": "https://example.com"}
+
+prefix : str, optional
+    Namespace prefix to be used for every element and/or attribute
+    in document. This should be one of the keys in ``namespaces``
+    dict.
+encoding : str, default 'utf-8'
+    Encoding of the resulting document.
+xml_declaration : bool, default True
+    Whether to include the XML declaration at start of document.
+pretty_print : bool, default True
+    Whether output should be pretty printed with indentation and
+    line breaks.
+parser : {'lxml','etree'}, default 'lxml'
+    Parser module to use for building of tree. Only 'lxml' and
+    'etree' are supported. With 'lxml', the ability to use XSLT
+    stylesheet is supported.
+stylesheet : str, path object or file-like object, optional
+    A URL, file-like object, or a raw string containing an XSLT
+    script used to transform the raw XML output. Script should use
+    layout of elements and attributes from original output. This
+    argument requires ``lxml`` to be installed. Only XSLT 1.0
+    scripts and not later versions is currently supported.
+compression : str or dict, default 'infer'
+    For on-the-fly compression of the output data. If 'infer' and 'path_or_buffer' is
+    path-like, then detect compression from the following extensions: '.gz',
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    Set to ``None`` for no compression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for faster compression and to create
+    a reproducible gzip archive:
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files.
+
+    .. versionchanged:: 1.4.0 Zstandard support.
+
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib.request.Request`` as header options. For other
+    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+    details, and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_.
+
+Returns
+-------
+None or str
+    If ``io`` is None, returns the resulting XML format as a
+    string. Otherwise returns None.
+
+See Also
+--------
+to_json : Convert the pandas object to a JSON string.
+to_html : Convert DataFrame to a html.
+
+Examples
+--------
+>>> df = pd.DataFrame({'shape': ['square', 'circle', 'triangle'],
+...                    'degrees': [360, 360, 180],
+...                    'sides': [4, np.nan, 3]})
+
+>>> df.to_xml()  # doctest: +SKIP
+<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <index>0</index>
+    <shape>square</shape>
+    <degrees>360</degrees>
+    <sides>4.0</sides>
+  </row>
+  <row>
+    <index>1</index>
+    <shape>circle</shape>
+    <degrees>360</degrees>
+    <sides/>
+  </row>
+  <row>
+    <index>2</index>
+    <shape>triangle</shape>
+    <degrees>180</degrees>
+    <sides>3.0</sides>
+  </row>
+</data>
+
+>>> df.to_xml(attr_cols=[
+...           'index', 'shape', 'degrees', 'sides'
+...           ])  # doctest: +SKIP
+<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row index="0" shape="square" degrees="360" sides="4.0"/>
+  <row index="1" shape="circle" degrees="360"/>
+  <row index="2" shape="triangle" degrees="180" sides="3.0"/>
+</data>
+
+>>> df.to_xml(namespaces={"doc": "https://example.com"},
+...           prefix="doc")  # doctest: +SKIP
+<?xml version='1.0' encoding='utf-8'?>
+<doc:data xmlns:doc="https://example.com">
+  <doc:row>
+    <doc:index>0</doc:index>
+    <doc:shape>square</doc:shape>
+    <doc:degrees>360</doc:degrees>
+    <doc:sides>4.0</doc:sides>
+  </doc:row>
+  <doc:row>
+    <doc:index>1</doc:index>
+    <doc:shape>circle</doc:shape>
+    <doc:degrees>360</doc:degrees>
+    <doc:sides/>
+  </doc:row>
+  <doc:row>
+    <doc:index>2</doc:index>
+    <doc:shape>triangle</doc:shape>
+    <doc:degrees>180</doc:degrees>
+    <doc:sides>3.0</doc:sides>
+  </doc:row>
+</doc:data>
+        """
+        pass
     @overload
     def to_xml(
         self,
@@ -597,14 +964,152 @@ Name: population, dtype: int64
     ) -> str: ...
     def info(
         self, verbose=..., buf=..., max_cols=..., memory_usage=..., null_counts=...
-    ) -> None: ...
+    ) -> None:
+        """
+Print a concise summary of a DataFrame.
+
+This method prints information about a DataFrame including
+the index dtype and columns, non-null values and memory usage.
+
+Parameters
+----------
+verbose : bool, optional
+    Whether to print the full summary. By default, the setting in
+    ``pandas.options.display.max_info_columns`` is followed.
+buf : writable buffer, defaults to sys.stdout
+    Where to send the output. By default, the output is printed to
+    sys.stdout. Pass a writable buffer if you need to further process
+    the output.
+max_cols : int, optional
+    When to switch from the verbose to the truncated output. If the
+    DataFrame has more than `max_cols` columns, the truncated output
+    is used. By default, the setting in
+    ``pandas.options.display.max_info_columns`` is used.
+memory_usage : bool, str, optional
+    Specifies whether total memory usage of the DataFrame
+    elements (including the index) should be displayed. By default,
+    this follows the ``pandas.options.display.memory_usage`` setting.
+
+    True always show memory usage. False never shows memory usage.
+    A value of 'deep' is equivalent to "True with deep introspection".
+    Memory usage is shown in human-readable units (base-2
+    representation). Without deep introspection a memory estimation is
+    made based in column dtype and number of rows assuming values
+    consume the same memory amount for corresponding dtypes. With deep
+    memory introspection, a real memory usage calculation is performed
+    at the cost of computational resources. See the
+    :ref:`Frequently Asked Questions <df-memory-usage>` for more
+    details.
+show_counts : bool, optional
+    Whether to show the non-null counts. By default, this is shown
+    only if the DataFrame is smaller than
+    ``pandas.options.display.max_info_rows`` and
+    ``pandas.options.display.max_info_columns``. A value of True always
+    shows the counts, and False never shows the counts.
+
+Returns
+-------
+None
+    This method prints a summary of a DataFrame and returns None.
+
+See Also
+--------
+DataFrame.describe: Generate descriptive statistics of DataFrame
+    columns.
+DataFrame.memory_usage: Memory usage of DataFrame columns.
+
+Examples
+--------
+>>> int_values = [1, 2, 3, 4, 5]
+>>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+>>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+>>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
+...                   "float_col": float_values})
+>>> df
+    int_col text_col  float_col
+0        1    alpha       0.00
+1        2     beta       0.25
+2        3    gamma       0.50
+3        4    delta       0.75
+4        5  epsilon       1.00
+
+Prints information of all columns:
+
+>>> df.info(verbose=True)
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 5 entries, 0 to 4
+Data columns (total 3 columns):
+ #   Column     Non-Null Count  Dtype
+---  ------     --------------  -----
+ 0   int_col    5 non-null      int64
+ 1   text_col   5 non-null      object
+ 2   float_col  5 non-null      float64
+dtypes: float64(1), int64(1), object(1)
+memory usage: 248.0+ bytes
+
+Prints a summary of columns count and its dtypes but not per column
+information:
+
+>>> df.info(verbose=False)
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 5 entries, 0 to 4
+Columns: 3 entries, int_col to float_col
+dtypes: float64(1), int64(1), object(1)
+memory usage: 248.0+ bytes
+
+Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+buffer content and writes to a text file:
+
+>>> import io
+>>> buffer = io.StringIO()
+>>> df.info(buf=buffer)
+>>> s = buffer.getvalue()
+>>> with open("df_info.txt", "w",
+...           encoding="utf-8") as f:  # doctest: +SKIP
+...     f.write(s)
+260
+
+The `memory_usage` parameter allows deep introspection mode, specially
+useful for big DataFrames and fine-tune memory optimization:
+
+>>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+>>> df = pd.DataFrame({
+...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
+... })
+>>> df.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 1000000 entries, 0 to 999999
+Data columns (total 3 columns):
+ #   Column    Non-Null Count    Dtype
+---  ------    --------------    -----
+ 0   column_1  1000000 non-null  object
+ 1   column_2  1000000 non-null  object
+ 2   column_3  1000000 non-null  object
+dtypes: object(3)
+memory usage: 22.9+ MB
+
+>>> df.info(memory_usage='deep')
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 1000000 entries, 0 to 999999
+Data columns (total 3 columns):
+ #   Column    Non-Null Count    Dtype
+---  ------    --------------    -----
+ 0   column_1  1000000 non-null  object
+ 1   column_2  1000000 non-null  object
+ 2   column_3  1000000 non-null  object
+dtypes: object(3)
+memory usage: 165.9 MB
+        """
+        pass
     def memory_usage(self, index: _bool = ..., deep: _bool = ...) -> Series: ...
     def transpose(self, *args, copy: _bool = ...) -> DataFrame: ...
     @property
     def T(self) -> DataFrame: ...
     def __getattr__(self, name: str) -> Series: ...
     @overload
-    def __getitem__(self, key: Scalar | tuple[Hashable, ...]) -> Series: ...  # type: ignore[misc]
+    def __getitem__(self, key: Scalar | tuple[Hashable, ...]) -> Series: ...  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
     @overload
     def __getitem__(self, key: Iterable[Hashable] | slice) -> DataFrame: ...
     @overload
@@ -694,6 +1199,18 @@ method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
 
 copy : bool, default True
     Return a new object, even if the passed indexes are the same.
+
+    .. note::
+        The `copy` keyword will change behavior in pandas 3.0.
+        `Copy-on-Write
+        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+        will be enabled by default, which means that all methods with a
+        `copy` keyword will use a lazy copy mechanism to defer the copy and
+        ignore the `copy` keyword. The `copy` keyword will be removed in a
+        future version of pandas.
+
+        You can already get the future behavior and improvements through
+        enabling copy on write ``pd.options.mode.copy_on_write = True``
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.
@@ -1497,154 +2014,7 @@ dtype: bool
         ignore_index: _bool = ...,
         inplace: Literal[True],
         key: Callable | None = ...,
-    ) -> None:
-        """
-Sort by the values along either axis.
-
-Parameters
-----------
-by : str or list of str
-    Name or list of names to sort by.
-
-    - if `axis` is 0 or `'index'` then `by` may contain index
-      levels and/or column labels.
-    - if `axis` is 1 or `'columns'` then `by` may contain column
-      levels and/or index labels.
-axis : "{0 or 'index', 1 or 'columns'}", default 0
-     Axis to be sorted.
-ascending : bool or list of bool, default True
-     Sort ascending vs. descending. Specify list for multiple sort
-     orders.  If this is a list of bools, must match the length of
-     the by.
-inplace : bool, default False
-     If True, perform operation in-place.
-kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
-     Choice of sorting algorithm. See also :func:`numpy.sort` for more
-     information. `mergesort` and `stable` are the only stable algorithms. For
-     DataFrames, this option is only applied when sorting on a single
-     column or label.
-na_position : {'first', 'last'}, default 'last'
-     Puts NaNs at the beginning if `first`; `last` puts NaNs at the
-     end.
-ignore_index : bool, default False
-     If True, the resulting axis will be labeled 0, 1, …, n - 1.
-key : callable, optional
-    Apply the key function to the values
-    before sorting. This is similar to the `key` argument in the
-    builtin :meth:`sorted` function, with the notable difference that
-    this `key` function should be *vectorized*. It should expect a
-    ``Series`` and return a Series with the same shape as the input.
-    It will be applied to each column in `by` independently.
-
-Returns
--------
-DataFrame or None
-    DataFrame with sorted values or None if ``inplace=True``.
-
-See Also
---------
-DataFrame.sort_index : Sort a DataFrame by the index.
-Series.sort_values : Similar method for a Series.
-
-Examples
---------
->>> df = pd.DataFrame({
-...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
-...     'col2': [2, 1, 9, 8, 7, 4],
-...     'col3': [0, 1, 9, 4, 2, 3],
-...     'col4': ['a', 'B', 'c', 'D', 'e', 'F']
-... })
->>> df
-  col1  col2  col3 col4
-0    A     2     0    a
-1    A     1     1    B
-2    B     9     9    c
-3  NaN     8     4    D
-4    D     7     2    e
-5    C     4     3    F
-
-Sort by col1
-
->>> df.sort_values(by=['col1'])
-  col1  col2  col3 col4
-0    A     2     0    a
-1    A     1     1    B
-2    B     9     9    c
-5    C     4     3    F
-4    D     7     2    e
-3  NaN     8     4    D
-
-Sort by multiple columns
-
->>> df.sort_values(by=['col1', 'col2'])
-  col1  col2  col3 col4
-1    A     1     1    B
-0    A     2     0    a
-2    B     9     9    c
-5    C     4     3    F
-4    D     7     2    e
-3  NaN     8     4    D
-
-Sort Descending
-
->>> df.sort_values(by='col1', ascending=False)
-  col1  col2  col3 col4
-4    D     7     2    e
-5    C     4     3    F
-2    B     9     9    c
-0    A     2     0    a
-1    A     1     1    B
-3  NaN     8     4    D
-
-Putting NAs first
-
->>> df.sort_values(by='col1', ascending=False, na_position='first')
-  col1  col2  col3 col4
-3  NaN     8     4    D
-4    D     7     2    e
-5    C     4     3    F
-2    B     9     9    c
-0    A     2     0    a
-1    A     1     1    B
-
-Sorting with a key function
-
->>> df.sort_values(by='col4', key=lambda col: col.str.lower())
-   col1  col2  col3 col4
-0    A     2     0    a
-1    A     1     1    B
-2    B     9     9    c
-3  NaN     8     4    D
-4    D     7     2    e
-5    C     4     3    F
-
-Natural sort with the key argument,
-using the `natsort <https://github.com/SethMMorton/natsort>` package.
-
->>> df = pd.DataFrame({
-...    "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
-...    "value": [10, 20, 30, 40, 50]
-... })
->>> df
-    time  value
-0    0hr     10
-1  128hr     20
-2   72hr     30
-3   48hr     40
-4   96hr     50
->>> from natsort import index_natsorted
->>> df.sort_values(
-...     by="time",
-...     key=lambda x: np.argsort(index_natsorted(df["time"]))
-... )
-    time  value
-0    0hr     10
-3   48hr     40
-2   72hr     30
-4   96hr     50
-1  128hr     20
-        """
-        pass
+    ) -> None: ...
     @overload
     def sort_values(
         self,
@@ -1684,92 +2054,7 @@ using the `natsort <https://github.com/SethMMorton/natsort>` package.
         ignore_index: _bool = ...,
         inplace: Literal[True],
         key: Callable | None = ...,
-    ) -> None:
-        """
-Sort object by labels (along an axis).
-
-Returns a new DataFrame sorted by label if `inplace` argument is
-``False``, otherwise updates the original DataFrame and returns None.
-
-Parameters
-----------
-axis : {0 or 'index', 1 or 'columns'}, default 0
-    The axis along which to sort.  The value 0 identifies the rows,
-    and 1 identifies the columns.
-level : int or level name or list of ints or list of level names
-    If not None, sort on values in specified index level(s).
-ascending : bool or list-like of bools, default True
-    Sort ascending vs. descending. When the index is a MultiIndex the
-    sort direction can be controlled for each level individually.
-inplace : bool, default False
-    Whether to modify the DataFrame rather than creating a new one.
-kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
-    Choice of sorting algorithm. See also :func:`numpy.sort` for more
-    information. `mergesort` and `stable` are the only stable algorithms. For
-    DataFrames, this option is only applied when sorting on a single
-    column or label.
-na_position : {'first', 'last'}, default 'last'
-    Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
-    Not implemented for MultiIndex.
-sort_remaining : bool, default True
-    If True and sorting by level and index is multilevel, sort by other
-    levels too (in order) after sorting by specified level.
-ignore_index : bool, default False
-    If True, the resulting axis will be labeled 0, 1, …, n - 1.
-key : callable, optional
-    If not None, apply the key function to the index values
-    before sorting. This is similar to the `key` argument in the
-    builtin :meth:`sorted` function, with the notable difference that
-    this `key` function should be *vectorized*. It should expect an
-    ``Index`` and return an ``Index`` of the same shape. For MultiIndex
-    inputs, the key is applied *per level*.
-
-Returns
--------
-DataFrame or None
-    The original DataFrame sorted by the labels or None if ``inplace=True``.
-
-See Also
---------
-Series.sort_index : Sort Series by the index.
-DataFrame.sort_values : Sort DataFrame by the value.
-Series.sort_values : Sort Series by the value.
-
-Examples
---------
->>> df = pd.DataFrame([1, 2, 3, 4, 5], index=[100, 29, 234, 1, 150],
-...                   columns=['A'])
->>> df.sort_index()
-     A
-1    4
-29   2
-100  1
-150  5
-234  3
-
-By default, it sorts in ascending order, to sort in descending order,
-use ``ascending=False``
-
->>> df.sort_index(ascending=False)
-     A
-234  3
-150  5
-100  1
-29   2
-1    4
-
-A key function can be specified which is applied to the index before
-sorting. For a ``MultiIndex`` this is applied to each level separately.
-
->>> df = pd.DataFrame({"a": [1, 2, 3, 4]}, index=['A', 'b', 'C', 'd'])
->>> df.sort_index(key=lambda x: x.str.lower())
-   a
-A  1
-b  2
-C  3
-d  4
-        """
-        pass
+    ) -> None: ...
     @overload
     def sort_index(
         self,
@@ -1820,7 +2105,77 @@ d  4
     ) -> DataFrame: ...
     def swaplevel(
         self, i: Level = ..., j: Level = ..., axis: Axis = ...
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Swap levels i and j in a :class:`MultiIndex`.
+
+Default is to swap the two innermost levels of the index.
+
+Parameters
+----------
+i, j : int or str
+    Levels of the indices to be swapped. Can pass level name as string.
+axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to swap levels on. 0 or 'index' for row-wise, 1 or
+            'columns' for column-wise.
+
+Returns
+-------
+DataFrame
+    DataFrame with levels swapped in MultiIndex.
+
+Examples
+--------
+>>> df = pd.DataFrame(
+...     {"Grade": ["A", "B", "A", "C"]},
+...     index=[
+...         ["Final exam", "Final exam", "Coursework", "Coursework"],
+...         ["History", "Geography", "History", "Geography"],
+...         ["January", "February", "March", "April"],
+...     ],
+... )
+>>> df
+                                    Grade
+Final exam  History     January      A
+            Geography   February     B
+Coursework  History     March        A
+            Geography   April        C
+
+In the following example, we will swap the levels of the indices.
+Here, we will swap the levels column-wise, but levels can be swapped row-wise
+in a similar manner. Note that column-wise is the default behaviour.
+By not supplying any arguments for i and j, we swap the last and second to
+last indices.
+
+>>> df.swaplevel()
+                                    Grade
+Final exam  January     History         A
+            February    Geography       B
+Coursework  March       History         A
+            April       Geography       C
+
+By supplying one argument, we can choose which index to swap the last
+index with. We can for example swap the first index with the last one as
+follows.
+
+>>> df.swaplevel(0)
+                                    Grade
+January     History     Final exam      A
+February    Geography   Final exam      B
+March       History     Coursework      A
+April       Geography   Coursework      C
+
+We can also define explicitly which indices we want to swap by supplying values
+for both i and j. Here, we for example swap the first and second indices.
+
+>>> df.swaplevel(0, 1)
+                                    Grade
+History     Final exam  January         A
+Geography   Final exam  February        B
+History     Coursework  March           A
+Geography   Coursework  April           C
+        """
+        pass
     def reorder_levels(self, order: list, axis: Axis = ...) -> DataFrame: ...
     def compare(
         self,
@@ -1829,7 +2184,146 @@ d  4
         keep_shape: bool = ...,
         keep_equal: bool = ...,
         result_names: Suffixes = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Compare to another DataFrame and show the differences.
+
+Parameters
+----------
+other : DataFrame
+    Object to compare with.
+
+align_axis : {0 or 'index', 1 or 'columns'}, default 1
+    Determine which axis to align the comparison on.
+
+    * 0, or 'index' : Resulting differences are stacked vertically
+        with rows drawn alternately from self and other.
+    * 1, or 'columns' : Resulting differences are aligned horizontally
+        with columns drawn alternately from self and other.
+
+keep_shape : bool, default False
+    If true, all rows and columns are kept.
+    Otherwise, only the ones with different values are kept.
+
+keep_equal : bool, default False
+    If true, the result keeps values that are equal.
+    Otherwise, equal values are shown as NaNs.
+
+result_names : tuple, default ('self', 'other')
+    Set the dataframes names in the comparison.
+
+    .. versionadded:: 1.5.0
+
+Returns
+-------
+DataFrame
+    DataFrame that shows the differences stacked side by side.
+
+    The resulting index will be a MultiIndex with 'self' and 'other'
+    stacked alternately at the inner level.
+
+Raises
+------
+ValueError
+    When the two DataFrames don't have identical labels or shape.
+
+See Also
+--------
+Series.compare : Compare with another Series and show differences.
+DataFrame.equals : Test whether two objects contain the same elements.
+
+Notes
+-----
+Matching NaNs will not appear as a difference.
+
+Can only compare identically-labeled
+(i.e. same shape, identical row and column labels) DataFrames
+
+Examples
+--------
+>>> df = pd.DataFrame(
+...     {
+...         "col1": ["a", "a", "b", "b", "a"],
+...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+...     },
+...     columns=["col1", "col2", "col3"],
+... )
+>>> df
+  col1  col2  col3
+0    a   1.0   1.0
+1    a   2.0   2.0
+2    b   3.0   3.0
+3    b   NaN   4.0
+4    a   5.0   5.0
+
+>>> df2 = df.copy()
+>>> df2.loc[0, 'col1'] = 'c'
+>>> df2.loc[2, 'col3'] = 4.0
+>>> df2
+  col1  col2  col3
+0    c   1.0   1.0
+1    a   2.0   2.0
+2    b   3.0   4.0
+3    b   NaN   4.0
+4    a   5.0   5.0
+
+Align the differences on columns
+
+>>> df.compare(df2)
+  col1       col3
+  self other self other
+0    a     c  NaN   NaN
+2  NaN   NaN  3.0   4.0
+
+Assign result_names
+
+>>> df.compare(df2, result_names=("left", "right"))
+  col1       col3
+  left right left right
+0    a     c  NaN   NaN
+2  NaN   NaN  3.0   4.0
+
+Stack the differences on rows
+
+>>> df.compare(df2, align_axis=0)
+        col1  col3
+0 self     a   NaN
+  other    c   NaN
+2 self   NaN   3.0
+  other  NaN   4.0
+
+Keep the equal values
+
+>>> df.compare(df2, keep_equal=True)
+  col1       col3
+  self other self other
+0    a     c  1.0   1.0
+2    b     b  3.0   4.0
+
+Keep all original rows and columns
+
+>>> df.compare(df2, keep_shape=True)
+  col1       col2       col3
+  self other self other self other
+0    a     c  NaN   NaN  NaN   NaN
+1  NaN   NaN  NaN   NaN  NaN   NaN
+2  NaN   NaN  NaN   NaN  3.0   4.0
+3  NaN   NaN  NaN   NaN  NaN   NaN
+4  NaN   NaN  NaN   NaN  NaN   NaN
+
+Keep all original rows and columns and also all original values
+
+>>> df.compare(df2, keep_shape=True, keep_equal=True)
+  col1       col2       col3
+  self other self other self other
+0    a     c  1.0   1.0  1.0   1.0
+1    a     a  2.0   2.0  2.0   2.0
+2    b     b  3.0   3.0  3.0   4.0
+3    b     b  NaN   NaN  4.0   4.0
+4    a     a  5.0   5.0  5.0   5.0
+        """
+        pass
     def combine(
         self,
         other: DataFrame,
@@ -1851,7 +2345,7 @@ d  4
         self,
         by: Scalar,
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2052,20 +2546,20 @@ group keys. The ``group_keys`` argument defaults to ``True`` (include).
 >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
 ...                               'Parrot', 'Parrot'],
 ...                    'Max Speed': [380., 370., 24., 26.]})
->>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
-          Animal  Max Speed
+>>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
+          Max Speed
 Animal
-Falcon 0  Falcon      380.0
-       1  Falcon      370.0
-Parrot 2  Parrot       24.0
-       3  Parrot       26.0
+Falcon 0      380.0
+       1      370.0
+Parrot 2       24.0
+       3       26.0
 
->>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
-   Animal  Max Speed
-0  Falcon      380.0
-1  Falcon      370.0
-2  Parrot       24.0
-3  Parrot       26.0
+>>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
+   Max Speed
+0      380.0
+1      370.0
+2       24.0
+3       26.0
         """
         pass
     @overload
@@ -2073,7 +2567,7 @@ Parrot 2  Parrot       24.0
         self,
         by: DatetimeIndex,
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2086,7 +2580,7 @@ Parrot 2  Parrot       24.0
         self,
         by: TimedeltaIndex,
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2099,7 +2593,7 @@ Parrot 2  Parrot       24.0
         self,
         by: PeriodIndex,
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2112,7 +2606,7 @@ Parrot 2  Parrot       24.0
         self,
         by: IntervalIndex[IntervalT],
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2125,7 +2619,7 @@ Parrot 2  Parrot       24.0
         self,
         by: MultiIndex | GroupByObjectNonScalar | None = ...,
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2138,7 +2632,7 @@ Parrot 2  Parrot       24.0
         self,
         by: Series[SeriesByT],
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2151,7 +2645,7 @@ Parrot 2  Parrot       24.0
         self,
         by: CategoricalIndex | Index | Series,
         axis: AxisIndex = ...,
-        level: Level | None = ...,
+        level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
@@ -2312,7 +2806,156 @@ ValueError: Index contains duplicate entries, cannot reshape
         dropna: _bool = ...,
         margins_name: _str = ...,
         observed: _bool = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Create a spreadsheet-style pivot table as a DataFrame.
+
+The levels in the pivot table will be stored in MultiIndex objects
+(hierarchical indexes) on the index and columns of the result DataFrame.
+
+Parameters
+----------
+values : list-like or scalar, optional
+    Column or columns to aggregate.
+index : column, Grouper, array, or list of the previous
+    Keys to group by on the pivot table index. If a list is passed,
+    it can contain any of the other types (except list). If an array is
+    passed, it must be the same length as the data and will be used in
+    the same manner as column values.
+columns : column, Grouper, array, or list of the previous
+    Keys to group by on the pivot table column. If a list is passed,
+    it can contain any of the other types (except list). If an array is
+    passed, it must be the same length as the data and will be used in
+    the same manner as column values.
+aggfunc : function, list of functions, dict, default "mean"
+    If a list of functions is passed, the resulting pivot table will have
+    hierarchical columns whose top level are the function names
+    (inferred from the function objects themselves).
+    If a dict is passed, the key is column to aggregate and the value is
+    function or list of functions. If ``margin=True``, aggfunc will be
+    used to calculate the partial aggregates.
+fill_value : scalar, default None
+    Value to replace missing values with (in the resulting pivot table,
+    after aggregation).
+margins : bool, default False
+    If ``margins=True``, special ``All`` columns and rows
+    will be added with partial group aggregates across the categories
+    on the rows and columns.
+dropna : bool, default True
+    Do not include columns whose entries are all NaN. If True,
+    rows with a NaN value in any column will be omitted before
+    computing margins.
+margins_name : str, default 'All'
+    Name of the row / column that will contain the totals
+    when margins is True.
+observed : bool, default False
+    This only applies if any of the groupers are Categoricals.
+    If True: only show observed values for categorical groupers.
+    If False: show all values for categorical groupers.
+
+    .. deprecated:: 2.2.0
+
+        The default value of ``False`` is deprecated and will change to
+        ``True`` in a future version of pandas.
+
+sort : bool, default True
+    Specifies if the result should be sorted.
+
+    .. versionadded:: 1.3.0
+
+Returns
+-------
+DataFrame
+    An Excel style pivot table.
+
+See Also
+--------
+DataFrame.pivot : Pivot without aggregation that can handle
+    non-numeric data.
+DataFrame.melt: Unpivot a DataFrame from wide to long format,
+    optionally leaving identifiers set.
+wide_to_long : Wide panel to long format. Less flexible but more
+    user-friendly than melt.
+
+Notes
+-----
+Reference :ref:`the user guide <reshaping.pivot>` for more examples.
+
+Examples
+--------
+>>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
+...                          "bar", "bar", "bar", "bar"],
+...                    "B": ["one", "one", "one", "two", "two",
+...                          "one", "one", "two", "two"],
+...                    "C": ["small", "large", "large", "small",
+...                          "small", "large", "small", "small",
+...                          "large"],
+...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+...                    "E": [2, 4, 5, 5, 6, 6, 8, 9, 9]})
+>>> df
+     A    B      C  D  E
+0  foo  one  small  1  2
+1  foo  one  large  2  4
+2  foo  one  large  2  5
+3  foo  two  small  3  5
+4  foo  two  small  3  6
+5  bar  one  large  4  6
+6  bar  one  small  5  8
+7  bar  two  small  6  9
+8  bar  two  large  7  9
+
+This first example aggregates values by taking the sum.
+
+>>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
+...                        columns=['C'], aggfunc="sum")
+>>> table
+C        large  small
+A   B
+bar one    4.0    5.0
+    two    7.0    6.0
+foo one    4.0    1.0
+    two    NaN    6.0
+
+We can also fill missing values using the `fill_value` parameter.
+
+>>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
+...                        columns=['C'], aggfunc="sum", fill_value=0)
+>>> table
+C        large  small
+A   B
+bar one      4      5
+    two      7      6
+foo one      4      1
+    two      0      6
+
+The next example aggregates by taking the mean across multiple columns.
+
+>>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+...                        aggfunc={'D': "mean", 'E': "mean"})
+>>> table
+                D         E
+A   C
+bar large  5.500000  7.500000
+    small  5.500000  8.500000
+foo large  2.000000  4.500000
+    small  2.333333  4.333333
+
+We can also calculate multiple types of aggregations for any given
+value column.
+
+>>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+...                        aggfunc={'D': "mean",
+...                                 'E': ["min", "max", "mean"]})
+>>> table
+                  D   E
+               mean max      mean  min
+A   C
+bar large  5.500000   9  7.500000    6
+    small  5.500000   9  8.500000    8
+foo large  2.000000   5  4.500000    4
+    small  2.333333   6  4.333333    2
+        """
+        pass
     def stack(
         self, level: Level | list[Level] = ..., dropna: _bool = ...
     ) -> DataFrame | Series[Any]: ...
@@ -2332,10 +2975,328 @@ ValueError: Index contains duplicate entries, cannot reshape
         value_name: Scalar = ...,
         col_level: int | _str | None = ...,
         ignore_index: _bool = ...,
-    ) -> DataFrame: ...
-    def diff(self, periods: int = ..., axis: Axis = ...) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
+
+This function is useful to massage a DataFrame into a format where one
+or more columns are identifier variables (`id_vars`), while all other
+columns, considered measured variables (`value_vars`), are "unpivoted" to
+the row axis, leaving just two non-identifier columns, 'variable' and
+'value'.
+
+Parameters
+----------
+id_vars : scalar, tuple, list, or ndarray, optional
+    Column(s) to use as identifier variables.
+value_vars : scalar, tuple, list, or ndarray, optional
+    Column(s) to unpivot. If not specified, uses all columns that
+    are not set as `id_vars`.
+var_name : scalar, default None
+    Name to use for the 'variable' column. If None it uses
+    ``frame.columns.name`` or 'variable'.
+value_name : scalar, default 'value'
+    Name to use for the 'value' column, can't be an existing column label.
+col_level : scalar, optional
+    If columns are a MultiIndex then use this level to melt.
+ignore_index : bool, default True
+    If True, original index is ignored. If False, the original index is retained.
+    Index labels will be repeated as necessary.
+
+Returns
+-------
+DataFrame
+    Unpivoted DataFrame.
+
+See Also
+--------
+melt : Identical method.
+pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+DataFrame.pivot : Return reshaped DataFrame organized
+    by given index / column values.
+DataFrame.explode : Explode a DataFrame from list-like
+        columns to long format.
+
+Notes
+-----
+Reference :ref:`the user guide <reshaping.melt>` for more examples.
+
+Examples
+--------
+>>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
+...                    'B': {0: 1, 1: 3, 2: 5},
+...                    'C': {0: 2, 1: 4, 2: 6}})
+>>> df
+   A  B  C
+0  a  1  2
+1  b  3  4
+2  c  5  6
+
+>>> df.melt(id_vars=['A'], value_vars=['B'])
+   A variable  value
+0  a        B      1
+1  b        B      3
+2  c        B      5
+
+>>> df.melt(id_vars=['A'], value_vars=['B', 'C'])
+   A variable  value
+0  a        B      1
+1  b        B      3
+2  c        B      5
+3  a        C      2
+4  b        C      4
+5  c        C      6
+
+The names of 'variable' and 'value' columns can be customized:
+
+>>> df.melt(id_vars=['A'], value_vars=['B'],
+...         var_name='myVarname', value_name='myValname')
+   A myVarname  myValname
+0  a         B          1
+1  b         B          3
+2  c         B          5
+
+Original index values can be kept around:
+
+>>> df.melt(id_vars=['A'], value_vars=['B', 'C'], ignore_index=False)
+   A variable  value
+0  a        B      1
+1  b        B      3
+2  c        B      5
+0  a        C      2
+1  b        C      4
+2  c        C      6
+
+If you have multi-index columns:
+
+>>> df.columns = [list('ABC'), list('DEF')]
+>>> df
+   A  B  C
+   D  E  F
+0  a  1  2
+1  b  3  4
+2  c  5  6
+
+>>> df.melt(col_level=0, id_vars=['A'], value_vars=['B'])
+   A variable  value
+0  a        B      1
+1  b        B      3
+2  c        B      5
+
+>>> df.melt(id_vars=[('A', 'D')], value_vars=[('B', 'E')])
+  (A, D) variable_0 variable_1  value
+0      a          B          E      1
+1      b          B          E      3
+2      c          B          E      5
+        """
+        pass
+    def diff(self, periods: int = ..., axis: Axis = ...) -> DataFrame:
+        """
+First discrete difference of element.
+
+Calculates the difference of a DataFrame element compared with another
+element in the DataFrame (default is element in previous row).
+
+Parameters
+----------
+periods : int, default 1
+    Periods to shift for calculating difference, accepts negative
+    values.
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    Take difference over rows (0) or columns (1).
+
+Returns
+-------
+DataFrame
+    First differences of the Series.
+
+See Also
+--------
+DataFrame.pct_change: Percent change over given number of periods.
+DataFrame.shift: Shift index by desired number of periods with an
+    optional time freq.
+Series.diff: First discrete difference of object.
+
+Notes
+-----
+For boolean dtypes, this uses :meth:`operator.xor` rather than
+:meth:`operator.sub`.
+The result is calculated according to current dtype in DataFrame,
+however dtype of the result is always float64.
+
+Examples
+--------
+
+Difference with previous row
+
+>>> df = pd.DataFrame({'a': [1, 2, 3, 4, 5, 6],
+...                    'b': [1, 1, 2, 3, 5, 8],
+...                    'c': [1, 4, 9, 16, 25, 36]})
+>>> df
+   a  b   c
+0  1  1   1
+1  2  1   4
+2  3  2   9
+3  4  3  16
+4  5  5  25
+5  6  8  36
+
+>>> df.diff()
+     a    b     c
+0  NaN  NaN   NaN
+1  1.0  0.0   3.0
+2  1.0  1.0   5.0
+3  1.0  1.0   7.0
+4  1.0  2.0   9.0
+5  1.0  3.0  11.0
+
+Difference with previous column
+
+>>> df.diff(axis=1)
+    a  b   c
+0 NaN  0   0
+1 NaN -1   3
+2 NaN -1   7
+3 NaN -1  13
+4 NaN  0  20
+5 NaN  2  28
+
+Difference with 3rd previous row
+
+>>> df.diff(periods=3)
+     a    b     c
+0  NaN  NaN   NaN
+1  NaN  NaN   NaN
+2  NaN  NaN   NaN
+3  3.0  2.0  15.0
+4  3.0  4.0  21.0
+5  3.0  6.0  27.0
+
+Difference with following row
+
+>>> df.diff(periods=-1)
+     a    b     c
+0 -1.0  0.0  -3.0
+1 -1.0 -1.0  -5.0
+2 -1.0 -1.0  -7.0
+3 -1.0 -2.0  -9.0
+4 -1.0 -3.0 -11.0
+5  NaN  NaN   NaN
+
+Overflow in input dtype
+
+>>> df = pd.DataFrame({'a': [1, 0]}, dtype=np.uint8)
+>>> df.diff()
+       a
+0    NaN
+1  255.0
+        """
+        pass
     @overload
-    def agg(self, func: AggFuncTypeBase, axis: Axis = ..., **kwargs) -> Series: ...
+    def agg(self, func: AggFuncTypeBase, axis: Axis = ..., **kwargs) -> Series:
+        """
+Aggregate using one or more operations over the specified axis.
+
+Parameters
+----------
+func : function, str, list or dict
+    Function to use for aggregating the data. If a function, must either
+    work when passed a DataFrame or when passed to DataFrame.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+    - dict of axis labels -> functions, function names or list of such.
+axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.
+*args
+    Positional arguments to pass to `func`.
+**kwargs
+    Keyword arguments to pass to `func`.
+
+Returns
+-------
+scalar, Series or DataFrame
+
+    The return can be:
+
+    * scalar : when Series.agg is called with single function
+    * Series : when DataFrame.agg is called with a single function
+    * DataFrame : when DataFrame.agg is called with several functions
+
+See Also
+--------
+DataFrame.apply : Perform any type of operations.
+DataFrame.transform : Perform transformation type operations.
+pandas.DataFrame.groupby : Perform operations over groups.
+pandas.DataFrame.resample : Perform operations over resampled bins.
+pandas.DataFrame.rolling : Perform operations over rolling window.
+pandas.DataFrame.expanding : Perform operations over expanding window.
+pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
+    weighted window.
+
+Notes
+-----
+The aggregation operations are always performed over an axis, either the
+index (default) or the column axis. This behavior is different from
+`numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+`var`), where the default is to compute the aggregation of the flattened
+array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+``numpy.mean(arr_2d, axis=0)``.
+
+`agg` is an alias for `aggregate`. Use the alias.
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
+
+A passed user-defined-function will be passed a Series for evaluation.
+
+Examples
+--------
+>>> df = pd.DataFrame([[1, 2, 3],
+...                    [4, 5, 6],
+...                    [7, 8, 9],
+...                    [np.nan, np.nan, np.nan]],
+...                   columns=['A', 'B', 'C'])
+
+Aggregate these functions over the rows.
+
+>>> df.agg(['sum', 'min'])
+        A     B     C
+sum  12.0  15.0  18.0
+min   1.0   2.0   3.0
+
+Different aggregations per column.
+
+>>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+        A    B
+sum  12.0  NaN
+min   1.0  2.0
+max   NaN  8.0
+
+Aggregate different functions over the columns and rename the index of the resulting
+DataFrame.
+
+>>> df.agg(x=('A', 'max'), y=('B', 'min'), z=('C', 'mean'))
+     A    B    C
+x  7.0  NaN  NaN
+y  NaN  2.0  NaN
+z  NaN  NaN  6.0
+
+Aggregate over the columns.
+
+>>> df.agg("mean", axis="columns")
+0    2.0
+1    5.0
+2    8.0
+3    NaN
+dtype: float64
+        """
+        pass
     @overload
     def agg(
         self,
@@ -2346,7 +3307,110 @@ ValueError: Index contains duplicate entries, cannot reshape
     @overload
     def aggregate(
         self, func: AggFuncTypeBase, axis: Axis = ..., **kwargs
-    ) -> Series: ...
+    ) -> Series:
+        """
+Aggregate using one or more operations over the specified axis.
+
+Parameters
+----------
+func : function, str, list or dict
+    Function to use for aggregating the data. If a function, must either
+    work when passed a DataFrame or when passed to DataFrame.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+    - dict of axis labels -> functions, function names or list of such.
+axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.
+*args
+    Positional arguments to pass to `func`.
+**kwargs
+    Keyword arguments to pass to `func`.
+
+Returns
+-------
+scalar, Series or DataFrame
+
+    The return can be:
+
+    * scalar : when Series.agg is called with single function
+    * Series : when DataFrame.agg is called with a single function
+    * DataFrame : when DataFrame.agg is called with several functions
+
+See Also
+--------
+DataFrame.apply : Perform any type of operations.
+DataFrame.transform : Perform transformation type operations.
+pandas.DataFrame.groupby : Perform operations over groups.
+pandas.DataFrame.resample : Perform operations over resampled bins.
+pandas.DataFrame.rolling : Perform operations over rolling window.
+pandas.DataFrame.expanding : Perform operations over expanding window.
+pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
+    weighted window.
+
+Notes
+-----
+The aggregation operations are always performed over an axis, either the
+index (default) or the column axis. This behavior is different from
+`numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+`var`), where the default is to compute the aggregation of the flattened
+array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+``numpy.mean(arr_2d, axis=0)``.
+
+`agg` is an alias for `aggregate`. Use the alias.
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
+
+A passed user-defined-function will be passed a Series for evaluation.
+
+Examples
+--------
+>>> df = pd.DataFrame([[1, 2, 3],
+...                    [4, 5, 6],
+...                    [7, 8, 9],
+...                    [np.nan, np.nan, np.nan]],
+...                   columns=['A', 'B', 'C'])
+
+Aggregate these functions over the rows.
+
+>>> df.agg(['sum', 'min'])
+        A     B     C
+sum  12.0  15.0  18.0
+min   1.0   2.0   3.0
+
+Different aggregations per column.
+
+>>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+        A    B
+sum  12.0  NaN
+min   1.0  2.0
+max   NaN  8.0
+
+Aggregate different functions over the columns and rename the index of the resulting
+DataFrame.
+
+>>> df.agg(x=('A', 'max'), y=('B', 'min'), z=('C', 'mean'))
+     A    B    C
+x  7.0  NaN  NaN
+y  NaN  2.0  NaN
+z  NaN  NaN  6.0
+
+Aggregate over the columns.
+
+>>> df.agg("mean", axis="columns")
+0    2.0
+1    5.0
+2    8.0
+3    NaN
+dtype: float64
+        """
+        pass
     @overload
     def aggregate(
         self,
@@ -2360,7 +3424,134 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis = ...,
         *args,
         **kwargs,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Call ``func`` on self producing a DataFrame with the same axis shape as self.
+
+Parameters
+----------
+func : function, str, list-like or dict-like
+    Function to use for transforming the data. If a function, must either
+    work when passed a DataFrame or when passed to DataFrame.apply. If func
+    is both list-like and dict-like, dict-like behavior takes precedence.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+    - dict-like of axis labels -> functions, function names or list-like of such.
+axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.
+*args
+    Positional arguments to pass to `func`.
+**kwargs
+    Keyword arguments to pass to `func`.
+
+Returns
+-------
+DataFrame
+    A DataFrame that must have the same length as self.
+
+Raises
+------
+ValueError : If the returned DataFrame has a different length than self.
+
+See Also
+--------
+DataFrame.agg : Only perform aggregating type operations.
+DataFrame.apply : Invoke function on a DataFrame.
+
+Notes
+-----
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
+
+Examples
+--------
+>>> df = pd.DataFrame({'A': range(3), 'B': range(1, 4)})
+>>> df
+   A  B
+0  0  1
+1  1  2
+2  2  3
+>>> df.transform(lambda x: x + 1)
+   A  B
+0  1  2
+1  2  3
+2  3  4
+
+Even though the resulting DataFrame must have the same length as the
+input DataFrame, it is possible to provide several input functions:
+
+>>> s = pd.Series(range(3))
+>>> s
+0    0
+1    1
+2    2
+dtype: int64
+>>> s.transform([np.sqrt, np.exp])
+       sqrt        exp
+0  0.000000   1.000000
+1  1.000000   2.718282
+2  1.414214   7.389056
+
+You can call transform on a GroupBy object:
+
+>>> df = pd.DataFrame({
+...     "Date": [
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05",
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05"],
+...     "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+... })
+>>> df
+         Date  Data
+0  2015-05-08     5
+1  2015-05-07     8
+2  2015-05-06     6
+3  2015-05-05     1
+4  2015-05-08    50
+5  2015-05-07   100
+6  2015-05-06    60
+7  2015-05-05   120
+>>> df.groupby('Date')['Data'].transform('sum')
+0     55
+1    108
+2     66
+3    121
+4     55
+5    108
+6     66
+7    121
+Name: Data, dtype: int64
+
+>>> df = pd.DataFrame({
+...     "c": [1, 1, 1, 2, 2, 2, 2],
+...     "type": ["m", "n", "o", "m", "m", "n", "n"]
+... })
+>>> df
+   c type
+0  1    m
+1  1    n
+2  1    o
+3  2    m
+4  2    m
+5  2    n
+6  2    n
+>>> df['size'] = df.groupby('c')['type'].transform(len)
+>>> df
+   c type size
+0  1    m    3
+1  1    n    3
+2  1    o    3
+3  2    m    4
+4  2    m    4
+5  2    n    4
+6  2    n    4
+        """
+        pass
 
     # apply() overloads with default result_type of None, and is indifferent to axis
     @overload
@@ -2531,7 +3722,207 @@ ValueError: Index contains duplicate entries, cannot reshape
         copy: _bool = ...,
         indicator: _bool | _str = ...,
         validate: _str | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Merge DataFrame or named Series objects with a database-style join.
+
+A named Series object is treated as a DataFrame with a single named column.
+
+The join is done on columns or indexes. If joining columns on
+columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
+on indexes or indexes on a column or columns, the index will be passed on.
+When performing a cross merge, no column specifications to merge on are
+allowed.
+
+.. warning::
+
+    If both key columns contain rows where the key is a null value, those
+    rows will be matched against each other. This is different from usual SQL
+    join behaviour and can lead to unexpected results.
+
+Parameters
+----------
+right : DataFrame or named Series
+    Object to merge with.
+how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+    Type of merge to be performed.
+
+    * left: use only keys from left frame, similar to a SQL left outer join;
+      preserve key order.
+    * right: use only keys from right frame, similar to a SQL right outer join;
+      preserve key order.
+    * outer: use union of keys from both frames, similar to a SQL full outer
+      join; sort keys lexicographically.
+    * inner: use intersection of keys from both frames, similar to a SQL inner
+      join; preserve the order of the left keys.
+    * cross: creates the cartesian product from both frames, preserves the order
+      of the left keys.
+on : label or list
+    Column or index level names to join on. These must be found in both
+    DataFrames. If `on` is None and not merging on indexes then this defaults
+    to the intersection of the columns in both DataFrames.
+left_on : label or list, or array-like
+    Column or index level names to join on in the left DataFrame. Can also
+    be an array or list of arrays of the length of the left DataFrame.
+    These arrays are treated as if they are columns.
+right_on : label or list, or array-like
+    Column or index level names to join on in the right DataFrame. Can also
+    be an array or list of arrays of the length of the right DataFrame.
+    These arrays are treated as if they are columns.
+left_index : bool, default False
+    Use the index from the left DataFrame as the join key(s). If it is a
+    MultiIndex, the number of keys in the other DataFrame (either the index
+    or a number of columns) must match the number of levels.
+right_index : bool, default False
+    Use the index from the right DataFrame as the join key. Same caveats as
+    left_index.
+sort : bool, default False
+    Sort the join keys lexicographically in the result DataFrame. If False,
+    the order of the join keys depends on the join type (how keyword).
+suffixes : list-like, default is ("_x", "_y")
+    A length-2 sequence where each element is optionally a string
+    indicating the suffix to add to overlapping column names in
+    `left` and `right` respectively. Pass a value of `None` instead
+    of a string to indicate that the column name from `left` or
+    `right` should be left as-is, with no suffix. At least one of the
+    values must not be None.
+copy : bool, default True
+    If False, avoid copy if possible.
+
+    .. note::
+        The `copy` keyword will change behavior in pandas 3.0.
+        `Copy-on-Write
+        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+        will be enabled by default, which means that all methods with a
+        `copy` keyword will use a lazy copy mechanism to defer the copy and
+        ignore the `copy` keyword. The `copy` keyword will be removed in a
+        future version of pandas.
+
+        You can already get the future behavior and improvements through
+        enabling copy on write ``pd.options.mode.copy_on_write = True``
+indicator : bool or str, default False
+    If True, adds a column to the output DataFrame called "_merge" with
+    information on the source of each row. The column can be given a different
+    name by providing a string argument. The column will have a Categorical
+    type with the value of "left_only" for observations whose merge key only
+    appears in the left DataFrame, "right_only" for observations
+    whose merge key only appears in the right DataFrame, and "both"
+    if the observation's merge key is found in both DataFrames.
+
+validate : str, optional
+    If specified, checks if merge is of specified type.
+
+    * "one_to_one" or "1:1": check if merge keys are unique in both
+      left and right datasets.
+    * "one_to_many" or "1:m": check if merge keys are unique in left
+      dataset.
+    * "many_to_one" or "m:1": check if merge keys are unique in right
+      dataset.
+    * "many_to_many" or "m:m": allowed, but does not result in checks.
+
+Returns
+-------
+DataFrame
+    A DataFrame of the two merged objects.
+
+See Also
+--------
+merge_ordered : Merge with optional filling/interpolation.
+merge_asof : Merge on nearest keys.
+DataFrame.join : Similar method using indices.
+
+Examples
+--------
+>>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
+...                     'value': [1, 2, 3, 5]})
+>>> df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
+...                     'value': [5, 6, 7, 8]})
+>>> df1
+    lkey value
+0   foo      1
+1   bar      2
+2   baz      3
+3   foo      5
+>>> df2
+    rkey value
+0   foo      5
+1   bar      6
+2   baz      7
+3   foo      8
+
+Merge df1 and df2 on the lkey and rkey columns. The value columns have
+the default suffixes, _x and _y, appended.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey')
+  lkey  value_x rkey  value_y
+0  foo        1  foo        5
+1  foo        1  foo        8
+2  bar        2  bar        6
+3  baz        3  baz        7
+4  foo        5  foo        5
+5  foo        5  foo        8
+
+Merge DataFrames df1 and df2 with specified left and right suffixes
+appended to any overlapping columns.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey',
+...           suffixes=('_left', '_right'))
+  lkey  value_left rkey  value_right
+0  foo           1  foo            5
+1  foo           1  foo            8
+2  bar           2  bar            6
+3  baz           3  baz            7
+4  foo           5  foo            5
+5  foo           5  foo            8
+
+Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
+any overlapping columns.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=(False, False))
+Traceback (most recent call last):
+...
+ValueError: columns overlap but no suffix specified:
+    Index(['value'], dtype='object')
+
+>>> df1 = pd.DataFrame({'a': ['foo', 'bar'], 'b': [1, 2]})
+>>> df2 = pd.DataFrame({'a': ['foo', 'baz'], 'c': [3, 4]})
+>>> df1
+      a  b
+0   foo  1
+1   bar  2
+>>> df2
+      a  c
+0   foo  3
+1   baz  4
+
+>>> df1.merge(df2, how='inner', on='a')
+      a  b  c
+0   foo  1  3
+
+>>> df1.merge(df2, how='left', on='a')
+      a  b  c
+0   foo  1  3.0
+1   bar  2  NaN
+
+>>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
+>>> df2 = pd.DataFrame({'right': [7, 8]})
+>>> df1
+    left
+0   foo
+1   bar
+>>> df2
+    right
+0   7
+1   8
+
+>>> df1.merge(df2, how='cross')
+   left  right
+0   foo      7
+1   foo      8
+2   bar      7
+3   bar      8
+        """
+        pass
     def round(
         self, decimals: int | dict | Series = ..., *args, **kwargs
     ) -> DataFrame: ...
@@ -2563,10 +3954,140 @@ ValueError: Index contains duplicate entries, cannot reshape
     def nunique(self, axis: Axis = ..., dropna: bool = ...) -> Series: ...
     def idxmax(
         self, axis: Axis = ..., skipna: _bool = ..., numeric_only: _bool = ...
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return index of first occurrence of maximum over requested axis.
+
+NA/null values are excluded.
+
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+numeric_only : bool, default False
+    Include only `float`, `int` or `boolean` data.
+
+    .. versionadded:: 1.5.0
+
+Returns
+-------
+Series
+    Indexes of maxima along the specified axis.
+
+Raises
+------
+ValueError
+    * If the row/column is empty
+
+See Also
+--------
+Series.idxmax : Return index of the maximum element.
+
+Notes
+-----
+This method is the DataFrame version of ``ndarray.argmax``.
+
+Examples
+--------
+Consider a dataset containing food consumption in Argentina.
+
+>>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+...                     'co2_emissions': [37.2, 19.66, 1712]},
+...                   index=['Pork', 'Wheat Products', 'Beef'])
+
+>>> df
+                consumption  co2_emissions
+Pork                  10.51         37.20
+Wheat Products       103.11         19.66
+Beef                  55.48       1712.00
+
+By default, it returns the index for the maximum value in each column.
+
+>>> df.idxmax()
+consumption     Wheat Products
+co2_emissions             Beef
+dtype: object
+
+To return the index for the maximum value in each row, use ``axis="columns"``.
+
+>>> df.idxmax(axis="columns")
+Pork              co2_emissions
+Wheat Products     consumption
+Beef              co2_emissions
+dtype: object
+        """
+        pass
     def idxmin(
         self, axis: Axis = ..., skipna: _bool = ..., numeric_only: _bool = ...
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return index of first occurrence of minimum over requested axis.
+
+NA/null values are excluded.
+
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+numeric_only : bool, default False
+    Include only `float`, `int` or `boolean` data.
+
+    .. versionadded:: 1.5.0
+
+Returns
+-------
+Series
+    Indexes of minima along the specified axis.
+
+Raises
+------
+ValueError
+    * If the row/column is empty
+
+See Also
+--------
+Series.idxmin : Return index of the minimum element.
+
+Notes
+-----
+This method is the DataFrame version of ``ndarray.argmin``.
+
+Examples
+--------
+Consider a dataset containing food consumption in Argentina.
+
+>>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+...                     'co2_emissions': [37.2, 19.66, 1712]},
+...                   index=['Pork', 'Wheat Products', 'Beef'])
+
+>>> df
+                consumption  co2_emissions
+Pork                  10.51         37.20
+Wheat Products       103.11         19.66
+Beef                  55.48       1712.00
+
+By default, it returns the index for the minimum value in each column.
+
+>>> df.idxmin()
+consumption                Pork
+co2_emissions    Wheat Products
+dtype: object
+
+To return the index for the minimum value in each row, use ``axis="columns"``.
+
+>>> df.idxmin(axis="columns")
+Pork                consumption
+Wheat Products    co2_emissions
+Beef                consumption
+dtype: object
+        """
+        pass
     @overload
     def mode(
         self,
@@ -2697,7 +4218,175 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Addition of dataframe and other, element-wise (binary operator `add`).
+
+Equivalent to ``dataframe + other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `radd`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def add_prefix(self, prefix: _str, axis: Axis | None = None) -> DataFrame: ...
     def add_suffix(self, suffix: _str, axis: Axis | None = None) -> DataFrame: ...
     @overload
@@ -2707,7 +4396,93 @@ ValueError: Index contains duplicate entries, cannot reshape
         bool_only: _bool | None = ...,
         skipna: _bool = ...,
         **kwargs,
-    ) -> _bool: ...
+    ) -> _bool:
+        """
+Return whether all elements are True, potentially over an axis.
+
+Returns True unless there at least one element within a series or
+along a Dataframe axis that is False or equivalent (e.g. zero or
+empty).
+
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns', None}, default 0
+    Indicate which axis or axes should be reduced. For `Series` this parameter
+    is unused and defaults to 0.
+
+    * 0 / 'index' : reduce the index, return a Series whose index is the
+      original column labels.
+    * 1 / 'columns' : reduce the columns, return a Series whose index is the
+      original index.
+    * None : reduce all axes, return a scalar.
+
+bool_only : bool, default False
+    Include only boolean columns. Not implemented for Series.
+skipna : bool, default True
+    Exclude NA/null values. If the entire row/column is NA and skipna is
+    True, then the result will be True, as for an empty row/column.
+    If skipna is False, then NA are treated as True, because these are not
+    equal to zero.
+**kwargs : any, default None
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+
+Returns
+-------
+Series or DataFrame
+    If level is specified, then, DataFrame is returned; otherwise, Series
+    is returned.
+
+See Also
+--------
+Series.all : Return True if all elements are True.
+DataFrame.any : Return True if one (or more) elements are True.
+
+Examples
+--------
+**Series**
+
+>>> pd.Series([True, True]).all()
+True
+>>> pd.Series([True, False]).all()
+False
+>>> pd.Series([], dtype="float64").all()
+True
+>>> pd.Series([np.nan]).all()
+True
+>>> pd.Series([np.nan]).all(skipna=False)
+True
+
+**DataFrames**
+
+Create a dataframe from a dictionary.
+
+>>> df = pd.DataFrame({'col1': [True, True], 'col2': [True, False]})
+>>> df
+   col1   col2
+0  True   True
+1  True  False
+
+Default behaviour checks if values in each column all return True.
+
+>>> df.all()
+col1     True
+col2    False
+dtype: bool
+
+Specify ``axis='columns'`` to check if values in each row all return True.
+
+>>> df.all(axis='columns')
+0     True
+1    False
+dtype: bool
+
+Or ``axis=None`` for whether every value is True.
+
+>>> df.all(axis=None)
+False
+        """
+        pass
     @overload
     def all(
         self,
@@ -2751,14 +4526,14 @@ ValueError: Index contains duplicate entries, cannot reshape
     ) -> DataFrame: ...
     def at_time(
         self,
-        time: _str | datetime.time,
+        time: _str | dt.time,
         asof: _bool = ...,
         axis: Axis | None = ...,
     ) -> DataFrame: ...
     def between_time(
         self,
-        start_time: _str | datetime.time,
-        end_time: _str | datetime.time,
+        start_time: _str | dt.time,
+        end_time: _str | dt.time,
         axis: Axis | None = ...,
     ) -> DataFrame: ...
     @overload
@@ -2791,16 +4566,408 @@ ValueError: Index contains duplicate entries, cannot reshape
     def copy(self, deep: _bool = ...) -> DataFrame: ...
     def cummax(
         self, axis: Axis | None = ..., skipna: _bool = ..., *args, **kwargs
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Return cumulative maximum over a DataFrame or Series axis.
+
+Returns a DataFrame or Series of the same size containing the cumulative
+maximum.
+
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
+    For `Series` this parameter is unused and defaults to 0.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+*args, **kwargs
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+
+Returns
+-------
+Series or DataFrame
+    Return cumulative maximum of Series or DataFrame.
+
+See Also
+--------
+core.window.expanding.Expanding.max : Similar functionality
+    but ignores ``NaN`` values.
+DataFrame.max : Return the maximum over
+    DataFrame axis.
+DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cummax()
+0    2.0
+1    NaN
+2    5.0
+3    5.0
+4    5.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cummax(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                   columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the maximum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cummax()
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  3.0  1.0
+
+To iterate over columns and find the maximum in each row,
+use ``axis=1``
+
+>>> df.cummax(axis=1)
+     A    B
+0  2.0  2.0
+1  3.0  NaN
+2  1.0  1.0
+        """
+        pass
     def cummin(
         self, axis: Axis | None = ..., skipna: _bool = ..., *args, **kwargs
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Return cumulative minimum over a DataFrame or Series axis.
+
+Returns a DataFrame or Series of the same size containing the cumulative
+minimum.
+
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
+    For `Series` this parameter is unused and defaults to 0.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+*args, **kwargs
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+
+Returns
+-------
+Series or DataFrame
+    Return cumulative minimum of Series or DataFrame.
+
+See Also
+--------
+core.window.expanding.Expanding.min : Similar functionality
+    but ignores ``NaN`` values.
+DataFrame.min : Return the minimum over
+    DataFrame axis.
+DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cummin()
+0    2.0
+1    NaN
+2    2.0
+3   -1.0
+4   -1.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cummin(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                   columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the minimum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cummin()
+     A    B
+0  2.0  1.0
+1  2.0  NaN
+2  1.0  0.0
+
+To iterate over columns and find the minimum in each row,
+use ``axis=1``
+
+>>> df.cummin(axis=1)
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+        """
+        pass
     def cumprod(
         self, axis: Axis | None = ..., skipna: _bool = ..., *args, **kwargs
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Return cumulative product over a DataFrame or Series axis.
+
+Returns a DataFrame or Series of the same size containing the cumulative
+product.
+
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
+    For `Series` this parameter is unused and defaults to 0.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+*args, **kwargs
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+
+Returns
+-------
+Series or DataFrame
+    Return cumulative product of Series or DataFrame.
+
+See Also
+--------
+core.window.expanding.Expanding.prod : Similar functionality
+    but ignores ``NaN`` values.
+DataFrame.prod : Return the product over
+    DataFrame axis.
+DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cumprod()
+0     2.0
+1     NaN
+2    10.0
+3   -10.0
+4    -0.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cumprod(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                   columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the product
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cumprod()
+     A    B
+0  2.0  1.0
+1  6.0  NaN
+2  6.0  0.0
+
+To iterate over columns and find the product in each row,
+use ``axis=1``
+
+>>> df.cumprod(axis=1)
+     A    B
+0  2.0  2.0
+1  3.0  NaN
+2  1.0  0.0
+        """
+        pass
     def cumsum(
         self, axis: Axis | None = ..., skipna: _bool = ..., *args, **kwargs
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Return cumulative sum over a DataFrame or Series axis.
+
+Returns a DataFrame or Series of the same size containing the cumulative
+sum.
+
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
+    For `Series` this parameter is unused and defaults to 0.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+*args, **kwargs
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+
+Returns
+-------
+Series or DataFrame
+    Return cumulative sum of Series or DataFrame.
+
+See Also
+--------
+core.window.expanding.Expanding.sum : Similar functionality
+    but ignores ``NaN`` values.
+DataFrame.sum : Return the sum over
+    DataFrame axis.
+DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cumsum()
+0    2.0
+1    NaN
+2    7.0
+3    6.0
+4    6.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cumsum(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                   columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the sum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cumsum()
+     A    B
+0  2.0  1.0
+1  5.0  NaN
+2  6.0  1.0
+
+To iterate over columns and find the sum in each row,
+use ``axis=1``
+
+>>> df.cumsum(axis=1)
+     A    B
+0  2.0  3.0
+1  3.0  NaN
+2  1.0  1.0
+        """
+        pass
     def describe(
         self,
         percentiles: list[float] | None = ...,
@@ -2814,16 +4981,498 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Floating division of dataframe and other, element-wise (binary operator `truediv`).
+
+Equivalent to ``dataframe / other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rtruediv`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def divide(
         self,
         other: num | ListLike | DataFrame,
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Floating division of dataframe and other, element-wise (binary operator `truediv`).
+
+Equivalent to ``dataframe / other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rtruediv`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def droplevel(self, level: Level | list[Level], axis: Axis = ...) -> DataFrame: ...
-    def eq(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame: ...
+    def eq(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame:
+        """
+Get Equal to of dataframe and other, element-wise (binary operator `eq`).
+
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
+
+Parameters
+----------
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
+level : int or label
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
+
+Returns
+-------
+DataFrame of bool
+    Result of the comparison.
+
+See Also
+--------
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise.
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise.
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise.
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+Examples
+--------
+>>> df = pd.DataFrame({'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]},
+...                   index=['A', 'B', 'C'])
+>>> df
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
+
+Comparison with a scalar, using either the operator or method:
+
+>>> df == 100
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+>>> df.eq(100)
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
+
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+   cost  revenue
+A  True    False
+B  True     True
+C  True     True
+D  True     True
+
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
+
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
+
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
+
+Compare to a DataFrame of different shape.
+
+>>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+...                      index=['A', 'B', 'C', 'D'])
+>>> other
+   revenue
+A      300
+B      250
+C      100
+D      150
+
+>>> df.gt(other)
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+
+Compare to a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]},
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+>>> df_multindex
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+>>> df.le(df_multindex, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
+        """
+        pass
     def equals(self, other: Series | DataFrame) -> _bool: ...
     def ewm(
         self,
@@ -2875,12 +5524,472 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Integer division of dataframe and other, element-wise (binary operator `floordiv`).
+
+Equivalent to ``dataframe // other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rfloordiv`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     # def from_dict
     # def from_records
-    def ge(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame: ...
+    def ge(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame:
+        """
+Get Greater than or equal to of dataframe and other, element-wise (binary operator `ge`).
+
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
+
+Parameters
+----------
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
+level : int or label
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
+
+Returns
+-------
+DataFrame of bool
+    Result of the comparison.
+
+See Also
+--------
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise.
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise.
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise.
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+Examples
+--------
+>>> df = pd.DataFrame({'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]},
+...                   index=['A', 'B', 'C'])
+>>> df
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
+
+Comparison with a scalar, using either the operator or method:
+
+>>> df == 100
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+>>> df.eq(100)
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
+
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+   cost  revenue
+A  True    False
+B  True     True
+C  True     True
+D  True     True
+
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
+
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
+
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
+
+Compare to a DataFrame of different shape.
+
+>>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+...                      index=['A', 'B', 'C', 'D'])
+>>> other
+   revenue
+A      300
+B      250
+C      100
+D      150
+
+>>> df.gt(other)
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+
+Compare to a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]},
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+>>> df_multindex
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+>>> df.le(df_multindex, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
+        """
+        pass
     # def get
-    def gt(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame: ...
+    def gt(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame:
+        """
+Get Greater than of dataframe and other, element-wise (binary operator `gt`).
+
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
+
+Parameters
+----------
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
+level : int or label
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
+
+Returns
+-------
+DataFrame of bool
+    Result of the comparison.
+
+See Also
+--------
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise.
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise.
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise.
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+Examples
+--------
+>>> df = pd.DataFrame({'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]},
+...                   index=['A', 'B', 'C'])
+>>> df
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
+
+Comparison with a scalar, using either the operator or method:
+
+>>> df == 100
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+>>> df.eq(100)
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
+
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+   cost  revenue
+A  True    False
+B  True     True
+C  True     True
+D  True     True
+
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
+
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
+
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
+
+Compare to a DataFrame of different shape.
+
+>>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+...                      index=['A', 'B', 'C', 'D'])
+>>> other
+   revenue
+A      300
+B      250
+C      100
+D      150
+
+>>> df.gt(other)
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+
+Compare to a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]},
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+>>> df_multindex
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+>>> df.le(df_multindex, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
+        """
+        pass
     def head(self, n: int = ...) -> DataFrame: ...
     def infer_objects(self) -> DataFrame: ...
     # def info
@@ -2931,7 +6040,78 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: None = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return unbiased kurtosis over requested axis.
+
+Kurtosis obtained using Fisher's definition of
+kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 2, 3], index=['cat', 'dog', 'dog', 'mouse'])
+            >>> s
+            cat    1
+            dog    2
+            dog    2
+            mouse  3
+            dtype: int64
+            >>> s.kurt()
+            1.5
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2, 2, 3], 'b': [3, 4, 4, 4]},
+            ...                   index=['cat', 'dog', 'dog', 'mouse'])
+            >>> df
+                   a   b
+              cat  1   3
+              dog  2   4
+              dog  2   4
+            mouse  3   4
+            >>> df.kurt()
+            a   1.5
+            b   4.0
+            dtype: float64
+
+            With axis=None
+
+            >>> df.kurt(axis=None).round(6)
+            -0.988693
+
+            Using axis=1
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [3, 4], 'd': [1, 2]},
+            ...                   index=['cat', 'dog'])
+            >>> df.kurt(axis=1)
+            cat   -6.0
+            dog   -6.0
+            dtype: float64
+        """
+        pass
     def kurtosis(
         self,
         axis: Axis | None = ...,
@@ -2939,11 +6119,374 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: None = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return unbiased kurtosis over requested axis.
+
+Kurtosis obtained using Fisher's definition of
+kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 2, 3], index=['cat', 'dog', 'dog', 'mouse'])
+            >>> s
+            cat    1
+            dog    2
+            dog    2
+            mouse  3
+            dtype: int64
+            >>> s.kurt()
+            1.5
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2, 2, 3], 'b': [3, 4, 4, 4]},
+            ...                   index=['cat', 'dog', 'dog', 'mouse'])
+            >>> df
+                   a   b
+              cat  1   3
+              dog  2   4
+              dog  2   4
+            mouse  3   4
+            >>> df.kurt()
+            a   1.5
+            b   4.0
+            dtype: float64
+
+            With axis=None
+
+            >>> df.kurt(axis=None).round(6)
+            -0.988693
+
+            Using axis=1
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [3, 4], 'd': [1, 2]},
+            ...                   index=['cat', 'dog'])
+            >>> df.kurt(axis=1)
+            cat   -6.0
+            dog   -6.0
+            dtype: float64
+        """
+        pass
     def last(self, offset) -> DataFrame: ...
     def last_valid_index(self) -> Scalar: ...
-    def le(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame: ...
-    def lt(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame: ...
+    def le(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame:
+        """
+Get Less than or equal to of dataframe and other, element-wise (binary operator `le`).
+
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
+
+Parameters
+----------
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
+level : int or label
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
+
+Returns
+-------
+DataFrame of bool
+    Result of the comparison.
+
+See Also
+--------
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise.
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise.
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise.
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+Examples
+--------
+>>> df = pd.DataFrame({'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]},
+...                   index=['A', 'B', 'C'])
+>>> df
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
+
+Comparison with a scalar, using either the operator or method:
+
+>>> df == 100
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+>>> df.eq(100)
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
+
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+   cost  revenue
+A  True    False
+B  True     True
+C  True     True
+D  True     True
+
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
+
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
+
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
+
+Compare to a DataFrame of different shape.
+
+>>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+...                      index=['A', 'B', 'C', 'D'])
+>>> other
+   revenue
+A      300
+B      250
+C      100
+D      150
+
+>>> df.gt(other)
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+
+Compare to a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]},
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+>>> df_multindex
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+>>> df.le(df_multindex, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
+        """
+        pass
+    def lt(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame:
+        """
+Get Less than of dataframe and other, element-wise (binary operator `lt`).
+
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
+
+Parameters
+----------
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
+level : int or label
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
+
+Returns
+-------
+DataFrame of bool
+    Result of the comparison.
+
+See Also
+--------
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise.
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise.
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise.
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+Examples
+--------
+>>> df = pd.DataFrame({'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]},
+...                   index=['A', 'B', 'C'])
+>>> df
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
+
+Comparison with a scalar, using either the operator or method:
+
+>>> df == 100
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+>>> df.eq(100)
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
+
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+   cost  revenue
+A  True    False
+B  True     True
+C  True     True
+D  True     True
+
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
+
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
+
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
+
+Compare to a DataFrame of different shape.
+
+>>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+...                      index=['A', 'B', 'C', 'D'])
+>>> other
+   revenue
+A      300
+B      250
+C      100
+D      150
+
+>>> df.gt(other)
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+
+Compare to a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]},
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+>>> df_multindex
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+>>> df.le(df_multindex, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
+        """
+        pass
     def mask(
         self,
         cond: Series | DataFrame | np.ndarray,
@@ -2961,7 +6504,67 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: None = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return the maximum of the values over the requested axis.
+
+If you want the *index* of the maximum, use ``idxmax``. This is the equivalent of the ``numpy.ndarray`` method ``argmax``.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+See Also
+--------
+Series.sum : Return the sum.
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+DataFrame.sum : Return the sum over the requested axis.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+Examples
+--------
+>>> idx = pd.MultiIndex.from_arrays([
+...     ['warm', 'warm', 'cold', 'cold'],
+...     ['dog', 'falcon', 'fish', 'spider']],
+...     names=['blooded', 'animal'])
+>>> s = pd.Series([4, 2, 0, 8], name='legs', index=idx)
+>>> s
+blooded  animal
+warm     dog       4
+         falcon    2
+cold     fish      0
+         spider    8
+Name: legs, dtype: int64
+
+>>> s.max()
+8
+        """
+        pass
     def mean(
         self,
         axis: Axis | None = ...,
@@ -2969,7 +6572,68 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: None = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return the mean of the values over the requested axis.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.mean()
+            2.0
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
+            >>> df
+                   a   b
+            tiger  1   2
+            zebra  2   3
+            >>> df.mean()
+            a   1.5
+            b   2.5
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.mean(axis=1)
+            tiger   1.5
+            zebra   2.5
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True` to avoid
+            getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
+            ...                   index=['tiger', 'zebra'])
+            >>> df.mean(numeric_only=True)
+            a   1.5
+            dtype: float64
+        """
+        pass
     def median(
         self,
         axis: Axis | None = ...,
@@ -2977,7 +6641,68 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: None = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return the median of the values over the requested axis.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.median()
+            2.0
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
+            >>> df
+                   a   b
+            tiger  1   2
+            zebra  2   3
+            >>> df.median()
+            a   1.5
+            b   2.5
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.median(axis=1)
+            tiger   1.5
+            zebra   2.5
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True`
+            to avoid getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
+            ...                   index=['tiger', 'zebra'])
+            >>> df.median(numeric_only=True)
+            a   1.5
+            dtype: float64
+        """
+        pass
     def min(
         self,
         axis: Axis | None = ...,
@@ -2985,29 +6710,739 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: None = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return the minimum of the values over the requested axis.
+
+If you want the *index* of the minimum, use ``idxmin``. This is the equivalent of the ``numpy.ndarray`` method ``argmin``.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+See Also
+--------
+Series.sum : Return the sum.
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+DataFrame.sum : Return the sum over the requested axis.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+Examples
+--------
+>>> idx = pd.MultiIndex.from_arrays([
+...     ['warm', 'warm', 'cold', 'cold'],
+...     ['dog', 'falcon', 'fish', 'spider']],
+...     names=['blooded', 'animal'])
+>>> s = pd.Series([4, 2, 0, 8], name='legs', index=idx)
+>>> s
+blooded  animal
+warm     dog       4
+         falcon    2
+cold     fish      0
+         spider    8
+Name: legs, dtype: int64
+
+>>> s.min()
+0
+        """
+        pass
     def mod(
         self,
         other: num | ListLike | DataFrame,
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Modulo of dataframe and other, element-wise (binary operator `mod`).
+
+Equivalent to ``dataframe % other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rmod`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def mul(
         self,
         other: num | ListLike | DataFrame,
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Multiplication of dataframe and other, element-wise (binary operator `mul`).
+
+Equivalent to ``dataframe * other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rmul`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def multiply(
         self,
         other: num | ListLike | DataFrame,
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
-    def ne(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Multiplication of dataframe and other, element-wise (binary operator `mul`).
+
+Equivalent to ``dataframe * other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rmul`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
+    def ne(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame:
+        """
+Get Not equal to of dataframe and other, element-wise (binary operator `ne`).
+
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
+
+Parameters
+----------
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
+level : int or label
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
+
+Returns
+-------
+DataFrame of bool
+    Result of the comparison.
+
+See Also
+--------
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise.
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise.
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise.
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+Examples
+--------
+>>> df = pd.DataFrame({'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]},
+...                   index=['A', 'B', 'C'])
+>>> df
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
+
+Comparison with a scalar, using either the operator or method:
+
+>>> df == 100
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+>>> df.eq(100)
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
+
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+   cost  revenue
+A  True    False
+B  True     True
+C  True     True
+D  True     True
+
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
+
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
+
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
+
+Compare to a DataFrame of different shape.
+
+>>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+...                      index=['A', 'B', 'C', 'D'])
+>>> other
+   revenue
+A      300
+B      250
+C      100
+D      150
+
+>>> df.gt(other)
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+
+Compare to a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]},
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+>>> df_multindex
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+>>> df.le(df_multindex, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
+        """
+        pass
     def pct_change(
         self,
         periods: int = ...,
@@ -3016,12 +7451,6 @@ ValueError: Index contains duplicate entries, cannot reshape
         freq=...,
         **kwargs,
     ) -> DataFrame: ...
-    def pipe(
-        self,
-        func: Callable[..., TType] | tuple[Callable[..., TType], _str],
-        *args,
-        **kwargs,
-    ) -> TType: ...
     def pop(self, item: _str) -> Series: ...
     def pow(
         self,
@@ -3029,7 +7458,175 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Exponential power of dataframe and other, element-wise (binary operator `pow`).
+
+Equivalent to ``dataframe ** other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rpow`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def prod(
         self,
         axis: Axis | None = ...,
@@ -3038,7 +7635,74 @@ ValueError: Index contains duplicate entries, cannot reshape
         numeric_only: _bool = ...,
         min_count: int = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return the product of the values over the requested axis.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.prod with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+min_count : int, default 0
+    The required number of valid values to perform the operation. If fewer than
+    ``min_count`` non-NA values are present the result will be NA.
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+See Also
+--------
+Series.sum : Return the sum.
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+DataFrame.sum : Return the sum over the requested axis.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+Examples
+--------
+By default, the product of an empty or all-NA Series is ``1``
+
+>>> pd.Series([], dtype="float64").prod()
+1.0
+
+This can be controlled with the ``min_count`` parameter
+
+>>> pd.Series([], dtype="float64").prod(min_count=1)
+nan
+
+Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+empty series identically.
+
+>>> pd.Series([np.nan]).prod()
+1.0
+
+>>> pd.Series([np.nan]).prod(min_count=1)
+nan
+        """
+        pass
     def product(
         self,
         axis: Axis | None = ...,
@@ -3047,14 +7711,249 @@ ValueError: Index contains duplicate entries, cannot reshape
         numeric_only: _bool = ...,
         min_count: int = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return the product of the values over the requested axis.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.prod with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+min_count : int, default 0
+    The required number of valid values to perform the operation. If fewer than
+    ``min_count`` non-NA values are present the result will be NA.
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+See Also
+--------
+Series.sum : Return the sum.
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+DataFrame.sum : Return the sum over the requested axis.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+Examples
+--------
+By default, the product of an empty or all-NA Series is ``1``
+
+>>> pd.Series([], dtype="float64").prod()
+1.0
+
+This can be controlled with the ``min_count`` parameter
+
+>>> pd.Series([], dtype="float64").prod(min_count=1)
+nan
+
+Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+empty series identically.
+
+>>> pd.Series([np.nan]).prod()
+1.0
+
+>>> pd.Series([np.nan]).prod(min_count=1)
+nan
+        """
+        pass
     def radd(
         self,
         other,
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Addition of dataframe and other, element-wise (binary operator `radd`).
+
+Equivalent to ``other + dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `add`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def rank(
         self,
         axis: Axis = ...,
@@ -3070,7 +7969,175 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Floating division of dataframe and other, element-wise (binary operator `rtruediv`).
+
+Equivalent to ``other / dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `truediv`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def reindex_like(
         self,
         other: DataFrame,
@@ -3127,7 +8194,7 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: Level | None = ...,
         origin: Timestamp
         | Literal["epoch", "start", "start_day", "end", "end_day"] = ...,
-        offset: Timedelta | _str | None = ...,
+        offset: dt.timedelta | Timedelta | _str | None = ...,
         group_keys: _bool = ...,
     ) -> Resampler[DataFrame]: ...
     def rfloordiv(
@@ -3136,25 +8203,529 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Integer division of dataframe and other, element-wise (binary operator `rfloordiv`).
+
+Equivalent to ``other // dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `floordiv`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def rmod(
         self,
         other,
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Modulo of dataframe and other, element-wise (binary operator `rmod`).
+
+Equivalent to ``other % dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `mod`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def rmul(
         self,
         other,
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Multiplication of dataframe and other, element-wise (binary operator `rmul`).
+
+Equivalent to ``other * dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `mul`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     @overload
     def rolling(
         self,
-        window: int | str | _dt.timedelta | BaseOffset | BaseIndexer,
+        window: int | str | dt.timedelta | BaseOffset | BaseIndexer,
         min_periods: int | None = ...,
         center: _bool = ...,
         on: Hashable | None = ...,
@@ -3168,7 +8739,7 @@ ValueError: Index contains duplicate entries, cannot reshape
     @overload
     def rolling(
         self,
-        window: int | str | _dt.timedelta | BaseOffset | BaseIndexer,
+        window: int | str | dt.timedelta | BaseOffset | BaseIndexer,
         min_periods: int | None = ...,
         center: _bool = ...,
         on: Hashable | None = ...,
@@ -3185,21 +8756,525 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Exponential power of dataframe and other, element-wise (binary operator `rpow`).
+
+Equivalent to ``other ** dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `pow`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def rsub(
         self,
         other,
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Subtraction of dataframe and other, element-wise (binary operator `rsub`).
+
+Equivalent to ``other - dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `sub`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def rtruediv(
         self,
         other,
         axis: Axis = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Floating division of dataframe and other, element-wise (binary operator `rtruediv`).
+
+Equivalent to ``other / dataframe``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `truediv`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     # sample is missing a weights arg
     def sample(
         self,
@@ -3219,9 +9294,133 @@ ValueError: Index contains duplicate entries, cannot reshape
         ddof: int = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return unbiased standard error of the mean over requested axis.
+
+Normalized by N-1 by default. This can be changed using the ddof argument
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.sem with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+ddof : int, default 1
+    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+    where N represents the number of elements.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+Returns
+-------
+Series or DataFrame (if level specified) 
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.sem().round(6)
+            0.57735
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
+            >>> df
+                   a   b
+            tiger  1   2
+            zebra  2   3
+            >>> df.sem()
+            a   0.5
+            b   0.5
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.sem(axis=1)
+            tiger   0.5
+            zebra   0.5
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True`
+            to avoid getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
+            ...                   index=['tiger', 'zebra'])
+            >>> df.sem(numeric_only=True)
+            a   0.5
+            dtype: float64
+        """
+        pass
     # Not actually positional, but used to handle removal of deprecated
-    def set_axis(self, labels, *, axis: Axis, copy: _bool = ...) -> DataFrame: ...
+    def set_axis(self, labels, *, axis: Axis, copy: _bool = ...) -> DataFrame:
+        """
+Assign desired index to given axis.
+
+Indexes for column or row labels can be changed by assigning
+a list-like or Index.
+
+Parameters
+----------
+labels : list-like, Index
+    The values for the new index.
+
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The axis to update. The value 0 identifies the rows. For `Series`
+    this parameter is unused and defaults to 0.
+
+copy : bool, default True
+    Whether to make a copy of the underlying data.
+
+    .. note::
+        The `copy` keyword will change behavior in pandas 3.0.
+        `Copy-on-Write
+        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+        will be enabled by default, which means that all methods with a
+        `copy` keyword will use a lazy copy mechanism to defer the copy and
+        ignore the `copy` keyword. The `copy` keyword will be removed in a
+        future version of pandas.
+
+        You can already get the future behavior and improvements through
+        enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+Returns
+-------
+DataFrame
+    An object of type DataFrame.
+
+See Also
+--------
+DataFrame.rename_axis : Alter the name of the index or columns.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+        Change the row labels.
+
+        >>> df.set_axis(['a', 'b', 'c'], axis='index')
+           A  B
+        a  1  4
+        b  2  5
+        c  3  6
+
+        Change the column labels.
+
+        >>> df.set_axis(['I', 'II'], axis='columns')
+           I  II
+        0  1   4
+        1  2   5
+        2  3   6
+        """
+        pass
     def skew(
         self,
         axis: Axis | None = ...,
@@ -3229,7 +9428,74 @@ ValueError: Index contains duplicate entries, cannot reshape
         level: None = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return unbiased skew over requested axis.
+
+Normalized by N-1.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    For DataFrames, specifying ``axis=None`` will apply the aggregation
+    across both axes.
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.skew()
+            0.0
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4], 'c': [1, 3, 5]},
+            ...                   index=['tiger', 'zebra', 'cow'])
+            >>> df
+                    a   b   c
+            tiger   1   2   1
+            zebra   2   3   3
+            cow     3   4   5
+            >>> df.skew()
+            a   0.0
+            b   0.0
+            c   0.0
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.skew(axis=1)
+            tiger   1.732051
+            zebra  -1.732051
+            cow     0.000000
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True` to avoid
+            getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': ['T', 'Z', 'X']},
+            ...                   index=['tiger', 'zebra', 'cow'])
+            >>> df.skew(numeric_only=True)
+            a   0.0
+            dtype: float64
+        """
+        pass
     def slice_shift(self, periods: int = ..., axis: Axis = ...) -> DataFrame: ...
     def squeeze(self, axis: Axis | None = ...): ...
     def std(
@@ -3240,21 +9506,420 @@ ValueError: Index contains duplicate entries, cannot reshape
         ddof: int = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return sample standard deviation over requested axis.
+
+Normalized by N-1 by default. This can be changed using the ddof argument.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.std with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+ddof : int, default 1
+    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+    where N represents the number of elements.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+Returns
+-------
+Series or DataFrame (if level specified) 
+
+Notes
+-----
+To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
+default `ddof=1`)
+
+Examples
+--------
+>>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
+...                    'age': [21, 25, 62, 43],
+...                    'height': [1.61, 1.87, 1.49, 2.01]}
+...                   ).set_index('person_id')
+>>> df
+           age  height
+person_id
+0           21    1.61
+1           25    1.87
+2           62    1.49
+3           43    2.01
+
+The standard deviation of the columns can be found as follows:
+
+>>> df.std()
+age       18.786076
+height     0.237417
+dtype: float64
+
+Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
+
+>>> df.std(ddof=0)
+age       16.269219
+height     0.205609
+dtype: float64
+        """
+        pass
     def sub(
         self,
         other: num | ListLike | DataFrame,
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Subtraction of dataframe and other, element-wise (binary operator `sub`).
+
+Equivalent to ``dataframe - other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rsub`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def subtract(
         self,
         other: num | ListLike | DataFrame,
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Subtraction of dataframe and other, element-wise (binary operator `sub`).
+
+Equivalent to ``dataframe - other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rsub`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def sum(
         self,
         axis: Axis | None = ...,
@@ -3263,7 +9928,93 @@ ValueError: Index contains duplicate entries, cannot reshape
         numeric_only: _bool = ...,
         min_count: int = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return the sum of the values over the requested axis.
+
+This is equivalent to the method ``numpy.sum``.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.sum with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+min_count : int, default 0
+    The required number of valid values to perform the operation. If fewer than
+    ``min_count`` non-NA values are present the result will be NA.
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+Series or scalar
+
+See Also
+--------
+Series.sum : Return the sum.
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+DataFrame.sum : Return the sum over the requested axis.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+Examples
+--------
+>>> idx = pd.MultiIndex.from_arrays([
+...     ['warm', 'warm', 'cold', 'cold'],
+...     ['dog', 'falcon', 'fish', 'spider']],
+...     names=['blooded', 'animal'])
+>>> s = pd.Series([4, 2, 0, 8], name='legs', index=idx)
+>>> s
+blooded  animal
+warm     dog       4
+         falcon    2
+cold     fish      0
+         spider    8
+Name: legs, dtype: int64
+
+>>> s.sum()
+14
+
+By default, the sum of an empty or all-NA Series is ``0``.
+
+>>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
+0.0
+
+This can be controlled with the ``min_count`` parameter. For example, if
+you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+>>> pd.Series([], dtype="float64").sum(min_count=1)
+nan
+
+Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+empty series identically.
+
+>>> pd.Series([np.nan]).sum()
+0.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
+        """
+        pass
     def swapaxes(self, axis1: Axis, axis2: Axis, copy: _bool = ...) -> DataFrame: ...
     def tail(self, n: int = ...) -> DataFrame: ...
     def take(
@@ -3400,11 +10151,179 @@ ValueError: Index contains duplicate entries, cannot reshape
         axis: Axis | None = ...,
         level: Level | None = ...,
         fill_value: float | None = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        """
+Get Floating division of dataframe and other, element-wise (binary operator `truediv`).
+
+Equivalent to ``dataframe / other``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `rtruediv`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+Parameters
+----------
+other : scalar, sequence, Series, dict or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis : {0 or 'index', 1 or 'columns'}
+    Whether to compare by the index (0 or 'index') or columns.
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+fill_value : float or None, default None
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
+
+Examples
+--------
+>>> df = pd.DataFrame({'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
+
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({'angles': 0, 'degrees': 2})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({'angles': [0, 3, 4]},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
+        """
+        pass
     def truncate(
         self,
-        before: datetime.date | _str | int | None = ...,
-        after: datetime.date | _str | int | None = ...,
+        before: dt.date | _str | int | None = ...,
+        after: dt.date | _str | int | None = ...,
         axis: Axis | None = ...,
         copy: _bool = ...,
     ) -> DataFrame: ...
@@ -3433,7 +10352,63 @@ ValueError: Index contains duplicate entries, cannot reshape
         ddof: int = ...,
         numeric_only: _bool = ...,
         **kwargs,
-    ) -> Series: ...
+    ) -> Series:
+        """
+Return unbiased variance over requested axis.
+
+Normalized by N-1 by default. This can be changed using the ddof argument.
+
+Parameters
+----------
+axis : {index (0), columns (1)}
+    For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.var with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+ddof : int, default 1
+    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+    where N represents the number of elements.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+Returns
+-------
+Series or DataFrame (if level specified) 
+
+Examples
+--------
+>>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
+...                    'age': [21, 25, 62, 43],
+...                    'height': [1.61, 1.87, 1.49, 2.01]}
+...                   ).set_index('person_id')
+>>> df
+           age  height
+person_id
+0           21    1.61
+1           25    1.87
+2           62    1.49
+3           43    2.01
+
+>>> df.var()
+age       352.916667
+height      0.056367
+dtype: float64
+
+Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
+
+>>> df.var(ddof=0)
+age       264.687500
+height      0.042275
+dtype: float64
+        """
+        pass
     def where(
         self,
         cond: Series
@@ -3466,3 +10441,6 @@ ValueError: Index contains duplicate entries, cannot reshape
     ) -> Self: ...
     def __truediv__(self, other: float | DataFrame | Series | Sequence) -> Self: ...
     def __rtruediv__(self, other: float | DataFrame | Series | Sequence) -> Self: ...
+
+class _PandasNamedTuple(tuple[Any, ...]):
+    def __getattr__(self, field: str) -> Scalar: ...

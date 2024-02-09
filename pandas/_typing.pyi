@@ -28,10 +28,14 @@ from pandas.core.generic import NDFrame
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
-from typing_extensions import TypeAlias
+from typing_extensions import (
+    ParamSpec,
+    TypeAlias,
+)
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import (
+    BaseOffset,
     Period,
     Timedelta,
     Timestamp,
@@ -433,7 +437,7 @@ class SequenceNotStr(Protocol[_T_co]):
     def __contains__(self, value: object, /) -> bool: ...
     def __len__(self) -> int: ...
     def __iter__(self) -> Iterator[_T_co]: ...
-    def index(self, value: Any, /, start: int = 0, stop: int = ...) -> int: ...
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int: ...
     def count(self, value: Any, /) -> int: ...
     def __reversed__(self) -> Iterator[_T_co]: ...
 
@@ -446,6 +450,7 @@ JSONSerializable: TypeAlias = PythonScalar | list | dict
 Axes: TypeAlias = AnyArrayLike | list | dict | range | tuple
 Renamer: TypeAlias = Mapping[Any, Label] | Callable[[Any], Label]
 T = TypeVar("T")
+P = ParamSpec("P")
 FuncType: TypeAlias = Callable[..., Any]
 F = TypeVar("F", bound=FuncType)
 HashableT = TypeVar("HashableT", bound=Hashable)
@@ -527,7 +532,8 @@ S1 = TypeVar(
     | datetime.timedelta  # includes pd.Timedelta
     | Period
     | Interval
-    | CategoricalDtype,
+    | CategoricalDtype
+    | BaseOffset,
 )
 
 IndexingInt: TypeAlias = (

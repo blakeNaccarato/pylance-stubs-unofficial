@@ -44,7 +44,77 @@ class BaseGroupBy(SelectionMixin[NDFrameT]):
     def ngroups(self) -> int: ...
     @property
     def indices(self) -> dict[Hashable, Index | npt.NDArray[np.int_] | list[int]]: ...
-    def pipe(self, func: Callable, *args, **kwargs): ...
+    def pipe(self, func: Callable, *args, **kwargs):
+        """
+Apply a ``func`` with arguments to this GroupBy object and return its result.
+
+Use `.pipe` when you want to improve readability by chaining together
+functions that expect Series, DataFrames, GroupBy or Resampler objects.
+Instead of writing
+
+>>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+>>> g = lambda x, arg1: x * 5 / arg1
+>>> f = lambda x: x ** 4
+>>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])
+>>> h(g(f(df.groupby('group')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+
+You can write
+
+>>> (df.groupby('group')
+...    .pipe(f)
+...    .pipe(g, arg1=1)
+...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
+
+which is much more readable.
+
+Parameters
+----------
+func : callable or tuple of (callable, str)
+    Function to apply to this GroupBy object or, alternatively,
+    a `(callable, data_keyword)` tuple where `data_keyword` is a
+    string indicating the keyword of `callable` that expects the
+    GroupBy object.
+args : iterable, optional
+       Positional arguments passed into `func`.
+kwargs : dict, optional
+         A dictionary of keyword arguments passed into `func`.
+
+Returns
+-------
+the return type of `func`.
+
+See Also
+--------
+Series.pipe : Apply a function with arguments to a series.
+DataFrame.pipe: Apply a function with arguments to a dataframe.
+apply : Apply function to each group instead of to the
+    full GroupBy object.
+
+Notes
+-----
+See more `here
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+
+Examples
+--------
+>>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
+>>> df
+   A  B
+0  a  1
+1  b  2
+2  a  3
+3  b  4
+
+To get the difference between each groups maximum and minimum value in one
+pass, you can do
+
+>>> df.groupby('A').pipe(lambda x: x.max() - x.min())
+   B
+A
+a  2
+b  2
+        """
+        pass
     plot = ...
     def get_group(self, name, obj: NDFrameT | None = ...) -> NDFrameT: ...
 
@@ -112,4 +182,71 @@ def get_groupby(
     squeeze: bool = ...,
     observed: bool = ...,
     mutated: bool = ...,
-) -> GroupBy: ...
+) -> GroupBy:
+    """
+Class for grouping and aggregating relational data.
+
+See aggregate, transform, and apply functions on this object.
+
+It's easiest to use obj.groupby(...) to use GroupBy, but you can also do:
+
+::
+
+    grouped = groupby(obj, ...)
+
+Parameters
+----------
+obj : pandas object
+axis : int, default 0
+level : int, default None
+    Level of MultiIndex
+groupings : list of Grouping objects
+    Most users should ignore this
+exclusions : array-like, optional
+    List of columns to exclude
+name : str
+    Most users should ignore this
+
+Returns
+-------
+**Attributes**
+groups : dict
+    {group name -> group labels}
+len(grouped) : int
+    Number of groups
+
+Notes
+-----
+After grouping, see aggregate, apply, and transform functions. Here are
+some other brief notes about usage. When grouping by multiple groups, the
+result index will be a MultiIndex (hierarchical) by default.
+
+Iteration produces (key, group) tuples, i.e. chunking the data by group. So
+you can write code like:
+
+::
+
+    grouped = obj.groupby(keys, axis=axis)
+    for key, group in grouped:
+        # do something with the data
+
+Function calls on GroupBy, if not specially implemented, "dispatch" to the
+grouped data. So if you group a DataFrame and wish to invoke the std()
+method on each group, you can simply do:
+
+::
+
+    df.groupby(mapper).std()
+
+rather than
+
+::
+
+    df.groupby(mapper).aggregate(np.std)
+
+You can pass arguments to these "wrapped" functions, too.
+
+See the online documentation for full exposition on these topics and much
+more
+    """
+    pass

@@ -53,7 +53,36 @@ class RangeIndex(Index[int]):
     def __contains__(self, key: int | np.integer) -> bool: ...
     def get_indexer(self, target, method=..., limit=..., tolerance=...): ...
     def tolist(self): ...
-    def copy(self, name=..., deep: bool = ..., dtype=..., **kwargs): ...
+    def copy(self, name=..., deep: bool = ..., dtype=..., **kwargs):
+        """
+Make a copy of this object.
+
+Name is set on the new object.
+
+Parameters
+----------
+name : Label, optional
+    Set name for new object.
+deep : bool, default False
+
+Returns
+-------
+Index
+    Index refer to new object which is a copy of this object.
+
+Notes
+-----
+In most cases, there should be no functional difference from using
+``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+
+Examples
+--------
+>>> idx = pd.Index(['a', 'b', 'c'])
+>>> new_idx = idx.copy()
+>>> idx is new_idx
+False
+        """
+        pass
     def min(self, axis=..., skipna: bool = ..., *args, **kwargs): ...
     def max(self, axis=..., skipna: bool = ..., *args, **kwargs): ...
     def argsort(self, *args, **kwargs): ...
