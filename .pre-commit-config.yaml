@@ -1,8 +1,3 @@
-ci:
-  skip:
-    - meta
-  autoupdate_schedule: "quarterly"
-
 repos:
   - repo: "meta"
     hooks:
