@@ -111,13 +111,15 @@ False
     @overload  # type: ignore[override]
     def __getitem__(
         self,
-        idx: slice
-        | np_ndarray_anyint
-        | Sequence[int]
-        | Index
-        | Series[bool]
-        | Sequence[bool]
-        | np_ndarray_bool,
+        idx: (
+            slice
+            | np_ndarray_anyint
+            | Sequence[int]
+            | Index
+            | Series[bool]
+            | Sequence[bool]
+            | np_ndarray_bool
+        ),
     ) -> Index: ...
     @overload
     def __getitem__(  # pyright: ignore[reportIncompatibleMethodOverride]

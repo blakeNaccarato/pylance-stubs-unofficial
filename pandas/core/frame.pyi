@@ -41,7 +41,6 @@ from pandas.core.indexing import (
     _LocIndexer,
 )
 from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
-from pandas.core.resample import Resampler
 from pandas.core.series import Series
 from pandas.core.window import (
     Expanding,
@@ -54,6 +53,7 @@ from pandas.core.window.rolling import (
 from typing_extensions import Self
 import xarray as xr
 
+from pandas._libs.lib import NoDefault
 from pandas._libs.missing import NAType
 from pandas._libs.tslibs import BaseOffset
 from pandas._libs.tslibs.nattype import NaTType
@@ -61,6 +61,7 @@ from pandas._typing import (
     S1,
     AggFuncTypeBase,
     AggFuncTypeDictFrame,
+    AggFuncTypeDictSeries,
     AggFuncTypeFrame,
     AnyArrayLike,
     ArrayLike,
@@ -113,7 +114,9 @@ from pandas._typing import (
     StorageOptions,
     StrLike,
     Suffixes,
+    T as _T,
     TimestampConvention,
+    TimeUnit,
     ValidationOptions,
     WriteBuffer,
     XMLParsers,
@@ -139,39 +142,47 @@ class _iLocIndexerFrame(_iLocIndexer):
     @overload
     def __getitem__(
         self,
-        idx: IndexType
-        | MaskType
-        | tuple[IndexType | MaskType, IndexType | MaskType]
-        | tuple[slice],
+        idx: (
+            IndexType
+            | MaskType
+            | tuple[IndexType | MaskType, IndexType | MaskType]
+            | tuple[slice]
+        ),
     ) -> DataFrame: ...
     def __setitem__(
         self,
-        idx: int
-        | IndexType
-        | tuple[int, int]
-        | tuple[IndexType, int]
-        | tuple[IndexType, IndexType]
-        | tuple[int, IndexType],
+        idx: (
+            int
+            | IndexType
+            | tuple[int, int]
+            | tuple[IndexType, int]
+            | tuple[IndexType, IndexType]
+            | tuple[int, IndexType]
+        ),
         value: Scalar | Series | DataFrame | np.ndarray | NAType | NaTType | None,
     ) -> None: ...
 
 class _LocIndexerFrame(_LocIndexer):
     @overload
+    def __getitem__(self, idx: Scalar) -> Series | DataFrame: ...
+    @overload
     def __getitem__(
         self,
-        idx: IndexType
-        | MaskType
-        | Callable[[DataFrame], IndexType | MaskType | list[HashableT]]
-        | list[HashableT]
-        | tuple[
+        idx: (
             IndexType
             | MaskType
+            | Callable[[DataFrame], IndexType | MaskType | list[HashableT]]
             | list[HashableT]
-            | slice
-            | _IndexSliceTuple
-            | Callable,
-            list[HashableT] | slice | Series[bool] | Callable,
-        ],
+            | tuple[
+                IndexType
+                | MaskType
+                | list[HashableT]
+                | slice
+                | _IndexSliceTuple
+                | Callable,
+                MaskType | list[HashableT] | slice | Callable,
+            ]
+        ),
     ) -> DataFrame: ...
     @overload
     def __getitem__(  # pyright: ignore[reportOverlappingOverload]
@@ -184,16 +195,19 @@ class _LocIndexerFrame(_LocIndexer):
     @overload
     def __getitem__(
         self,
-        idx: ScalarT
-        | Callable[[DataFrame], ScalarT]
-        | tuple[
-            IndexType
-            | MaskType
-            | _IndexSliceTuple
-            | Callable[[DataFrame], ScalarT | list[HashableT] | IndexType | MaskType],
-            ScalarT | None,
-        ]
-        | None,
+        idx: (
+            Callable[[DataFrame], ScalarT]
+            | tuple[
+                IndexType
+                | MaskType
+                | _IndexSliceTuple
+                | Callable[
+                    [DataFrame], ScalarT | list[HashableT] | IndexType | MaskType
+                ],
+                ScalarT | None,
+            ]
+            | None
+        ),
     ) -> Series: ...
     @overload
     def __getitem__(self, idx: tuple[Scalar, slice]) -> Series | DataFrame: ...
@@ -216,11 +230,13 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def __new__(
         cls,
-        data: ListLikeU
-        | DataFrame
-        | dict[Any, Any]
-        | Iterable[ListLikeU | tuple[Hashable, ListLikeU] | dict[Any, Any]]
-        | None = ...,
+        data: (
+            ListLikeU
+            | DataFrame
+            | dict[Any, Any]
+            | Iterable[ListLikeU | tuple[Hashable, ListLikeU] | dict[Any, Any]]
+            | None
+        ) = ...,
         index: Axes | None = ...,
         columns: Axes | None = ...,
         dtype=...,
@@ -403,14 +419,12 @@ Name: population, dtype: int64
     def to_records(
         self,
         index: _bool = ...,
-        column_dtypes: _str
-        | npt.DTypeLike
-        | Mapping[HashableT1, npt.DTypeLike]
-        | None = ...,
-        index_dtypes: _str
-        | npt.DTypeLike
-        | Mapping[HashableT2, npt.DTypeLike]
-        | None = ...,
+        column_dtypes: (
+            _str | npt.DTypeLike | Mapping[HashableT1, npt.DTypeLike] | None
+        ) = ...,
+        index_dtypes: (
+            _str | npt.DTypeLike | Mapping[HashableT2, npt.DTypeLike] | None
+        ) = ...,
     ) -> np.recarray: ...
     def to_stata(
         self,
@@ -682,27 +696,31 @@ object, as long as you don't use partition_cols, which creates multiple files.
         header: _bool = ...,
         index: _bool = ...,
         na_rep: _str = ...,
-        formatters: list[Callable[[object], str]]
-        | tuple[Callable[[object], str], ...]
-        | Mapping[Hashable, Callable[[object], str]]
-        | None = ...,
+        formatters: (
+            list[Callable[[object], str]]
+            | tuple[Callable[[object], str], ...]
+            | Mapping[Hashable, Callable[[object], str]]
+            | None
+        ) = ...,
         float_format: Callable[[float], str] | None = ...,
         sparsify: _bool | None = ...,
         index_names: _bool = ...,
-        justify: Literal[
-            "left",
-            "right",
-            "center",
-            "justify",
-            "justify-all",
-            "start",
-            "end",
-            "inherit",
-            "match-parent",
-            "initial",
-            "unset",
-        ]
-        | None = ...,
+        justify: (
+            Literal[
+                "left",
+                "right",
+                "center",
+                "justify",
+                "justify-all",
+                "start",
+                "end",
+                "inherit",
+                "match-parent",
+                "initial",
+                "unset",
+            ]
+            | None
+        ) = ...,
         max_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: _bool = ...,
@@ -725,27 +743,31 @@ object, as long as you don't use partition_cols, which creates multiple files.
         header: _bool = ...,
         index: _bool = ...,
         na_rep: _str = ...,
-        formatters: list[Callable[[object], str]]
-        | tuple[Callable[[object], str], ...]
-        | Mapping[Hashable, Callable[[object], str]]
-        | None = ...,
+        formatters: (
+            list[Callable[[object], str]]
+            | tuple[Callable[[object], str], ...]
+            | Mapping[Hashable, Callable[[object], str]]
+            | None
+        ) = ...,
         float_format: Callable[[float], str] | None = ...,
         sparsify: _bool | None = ...,
         index_names: _bool = ...,
-        justify: Literal[
-            "left",
-            "right",
-            "center",
-            "justify",
-            "justify-all",
-            "start",
-            "end",
-            "inherit",
-            "match-parent",
-            "initial",
-            "unset",
-        ]
-        | None = ...,
+        justify: (
+            Literal[
+                "left",
+                "right",
+                "center",
+                "justify",
+                "justify-all",
+                "start",
+                "end",
+                "inherit",
+                "match-parent",
+                "initial",
+                "unset",
+            ]
+            | None
+        ) = ...,
         max_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: _bool = ...,
@@ -963,7 +985,12 @@ Examples
         storage_options: StorageOptions = ...,
     ) -> str: ...
     def info(
-        self, verbose=..., buf=..., max_cols=..., memory_usage=..., null_counts=...
+        self,
+        verbose: bool | None = ...,
+        buf: WriteBuffer[str] = ...,
+        max_cols: int | None = ...,
+        memory_usage: bool | Literal["deep"] | None = ...,
+        show_counts: bool | None = ...,
     ) -> None:
         """
 Print a concise summary of a DataFrame.
@@ -1464,7 +1491,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         self,
         value: Scalar | NAType | dict | Series | DataFrame | None = ...,
         *,
-        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         limit: int = ...,
         downcast: dict | None = ...,
@@ -1475,7 +1501,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         self,
         value: Scalar | NAType | dict | Series | DataFrame | None = ...,
         *,
-        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         limit: int = ...,
         downcast: dict | None = ...,
@@ -1486,7 +1511,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         self,
         value: Scalar | NAType | dict | Series | DataFrame | None = ...,
         *,
-        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: _bool | None = ...,
         limit: int = ...,
@@ -1648,12 +1672,9 @@ Examples
     @overload
     def set_index(
         self,
-        keys: Label
-        | Series
-        | Index
-        | np.ndarray
-        | Iterator[HashableT]
-        | list[HashableT],
+        keys: (
+            Label | Series | Index | np.ndarray | Iterator[HashableT] | list[HashableT]
+        ),
         *,
         drop: _bool = ...,
         append: _bool = ...,
@@ -1663,12 +1684,9 @@ Examples
     @overload
     def set_index(
         self,
-        keys: Label
-        | Series
-        | Index
-        | np.ndarray
-        | Iterator[HashableT]
-        | list[HashableT],
+        keys: (
+            Label | Series | Index | np.ndarray | Iterator[HashableT] | list[HashableT]
+        ),
         *,
         drop: _bool = ...,
         append: _bool = ...,
@@ -2344,13 +2362,12 @@ Keep all original rows and columns and also all original values
     def groupby(
         self,
         by: Scalar,
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[Scalar]:
         """
@@ -2566,91 +2583,84 @@ Parrot 2       24.0
     def groupby(
         self,
         by: DatetimeIndex,
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[Timestamp]: ...
     @overload
     def groupby(
         self,
         by: TimedeltaIndex,
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[Timedelta]: ...
     @overload
     def groupby(
         self,
         by: PeriodIndex,
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[Period]: ...
     @overload
     def groupby(
         self,
         by: IntervalIndex[IntervalT],
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[IntervalT]: ...
     @overload
     def groupby(
         self,
         by: MultiIndex | GroupByObjectNonScalar | None = ...,
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[tuple]: ...
     @overload
     def groupby(
         self,
         by: Series[SeriesByT],
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[SeriesByT]: ...
     @overload
     def groupby(
         self,
         by: CategoricalIndex | Index | Series,
-        axis: AxisIndex = ...,
+        axis: AxisIndex | NoDefault = ...,
         level: IndexLabel | None = ...,
         as_index: _bool = ...,
         sort: _bool = ...,
         group_keys: _bool = ...,
-        squeeze: _bool = ...,
-        observed: _bool = ...,
+        observed: _bool | NoDefault = ...,
         dropna: _bool = ...,
     ) -> DataFrameGroupBy[Any]: ...
     def pivot(
@@ -3193,7 +3203,9 @@ Overflow in input dtype
         """
         pass
     @overload
-    def agg(self, func: AggFuncTypeBase, axis: Axis = ..., **kwargs) -> Series:
+    def agg(  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
+        self, func: AggFuncTypeBase | AggFuncTypeDictSeries, axis: Axis = ..., **kwargs
+    ) -> Series:
         """
 Aggregate using one or more operations over the specified axis.
 
@@ -3305,8 +3317,8 @@ dtype: float64
         **kwargs,
     ) -> DataFrame: ...
     @overload
-    def aggregate(
-        self, func: AggFuncTypeBase, axis: Axis = ..., **kwargs
+    def aggregate(  # type: ignore[overload-overlap] # pyright: ignore[reportOverlappingOverload]
+        self, func: AggFuncTypeBase | AggFuncTypeDictSeries, axis: Axis = ..., **kwargs
     ) -> Series:
         """
 Aggregate using one or more operations over the specified axis.
@@ -5842,7 +5854,14 @@ Q2 A  False     True
    C   True    False
         """
         pass
-    # def get
+    @overload
+    def get(self, key: Hashable, default: None = ...) -> Series | None: ...
+    @overload
+    def get(self, key: Hashable, default: _T) -> Series | _T: ...
+    @overload
+    def get(self, key: list[Hashable], default: None = ...) -> DataFrame | None: ...
+    @overload
+    def get(self, key: list[Hashable], default: _T) -> DataFrame | _T: ...
     def gt(self, other, axis: Axis = ..., level: Level | None = ...) -> DataFrame:
         """
 Get Greater than of dataframe and other, element-wise (binary operator `gt`).
@@ -8182,21 +8201,6 @@ B square        0.0      0.0
         *,
         inplace: Literal[False] = ...,
     ) -> DataFrame: ...
-    def resample(
-        self,
-        rule,
-        axis: Axis = ...,
-        closed: _str | None = ...,
-        label: _str | None = ...,
-        convention: TimestampConvention = ...,
-        kind: Literal["timestamp", "period"] | None = ...,
-        on: _str | None = ...,
-        level: Level | None = ...,
-        origin: Timestamp
-        | Literal["epoch", "start", "start_day", "end", "end_day"] = ...,
-        offset: dt.timedelta | Timedelta | _str | None = ...,
-        group_keys: _bool = ...,
-    ) -> Resampler[DataFrame]: ...
     def rfloordiv(
         self,
         other,
@@ -10037,9 +10041,10 @@ nan
         date_format: Literal["epoch", "iso"] | None = ...,
         double_precision: int = ...,
         force_ascii: _bool = ...,
-        date_unit: Literal["s", "ms", "us", "ns"] = ...,
-        default_handler: Callable[[Any], _str | float | _bool | list | dict]
-        | None = ...,
+        date_unit: TimeUnit = ...,
+        default_handler: (
+            Callable[[Any], _str | float | _bool | list | dict] | None
+        ) = ...,
         lines: Literal[True],
         compression: CompressionOptions = ...,
         index: _bool = ...,
@@ -10055,9 +10060,10 @@ nan
         date_format: Literal["epoch", "iso"] | None = ...,
         double_precision: int = ...,
         force_ascii: _bool = ...,
-        date_unit: Literal["s", "ms", "us", "ns"] = ...,
-        default_handler: Callable[[Any], _str | float | _bool | list | dict]
-        | None = ...,
+        date_unit: TimeUnit = ...,
+        default_handler: (
+            Callable[[Any], _str | float | _bool | list | dict] | None
+        ) = ...,
         lines: Literal[True],
         compression: CompressionOptions = ...,
         index: _bool = ...,
@@ -10072,9 +10078,10 @@ nan
         date_format: Literal["epoch", "iso"] | None = ...,
         double_precision: int = ...,
         force_ascii: _bool = ...,
-        date_unit: Literal["s", "ms", "us", "ns"] = ...,
-        default_handler: Callable[[Any], _str | float | _bool | list | dict]
-        | None = ...,
+        date_unit: TimeUnit = ...,
+        default_handler: (
+            Callable[[Any], _str | float | _bool | list | dict] | None
+        ) = ...,
         lines: _bool = ...,
         compression: CompressionOptions = ...,
         index: _bool = ...,
@@ -10089,9 +10096,10 @@ nan
         date_format: Literal["epoch", "iso"] | None = ...,
         double_precision: int = ...,
         force_ascii: _bool = ...,
-        date_unit: Literal["s", "ms", "us", "ns"] = ...,
-        default_handler: Callable[[Any], _str | float | _bool | list | dict]
-        | None = ...,
+        date_unit: TimeUnit = ...,
+        default_handler: (
+            Callable[[Any], _str | float | _bool | list | dict] | None
+        ) = ...,
         lines: _bool = ...,
         compression: CompressionOptions = ...,
         index: _bool = ...,
@@ -10411,11 +10419,13 @@ dtype: float64
         pass
     def where(
         self,
-        cond: Series
-        | DataFrame
-        | np.ndarray
-        | Callable[[DataFrame], DataFrame]
-        | Callable[[Any], _bool],
+        cond: (
+            Series
+            | DataFrame
+            | np.ndarray
+            | Callable[[DataFrame], DataFrame]
+            | Callable[[Any], _bool]
+        ),
         other=...,
         *,
         inplace: _bool = ...,

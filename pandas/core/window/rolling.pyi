@@ -1,20 +1,30 @@
-from collections.abc import Callable
+from collections.abc import (
+    Callable,
+    Iterator,
+)
+import datetime as dt
 from typing import (
     Any,
-    Generic,
     overload,
 )
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
 )
 from pandas.core.base import SelectionMixin
+from pandas.core.indexers import BaseIndexer
+from typing_extensions import Self
 
+from pandas._libs.tslibs import BaseOffset
 from pandas._typing import (
     AggFuncTypeBase,
     AggFuncTypeFrame,
     AggFuncTypeSeriesToFrame,
+    AxisInt,
+    CalculationMethod,
+    IntervalClosedType,
     NDFrameT,
     QuantileInterpolation,
     WindowingEngine,
@@ -22,9 +32,19 @@ from pandas._typing import (
     WindowingRankType,
 )
 
-class BaseWindow(SelectionMixin[NDFrameT], Generic[NDFrameT]):
-    def __getattr__(self, attr: str): ...
-    def __iter__(self): ...
+class BaseWindow(SelectionMixin[NDFrameT]):
+    on: str | Index | None
+    closed: IntervalClosedType | None
+    step: int | None
+    window: int | dt.timedelta | str | BaseOffset | BaseIndexer | None
+    min_periods: int | None
+    center: bool | None
+    win_type: str | None
+    axis: AxisInt
+    method: CalculationMethod
+    def __getitem__(self, key) -> Self: ...
+    def __getattr__(self, attr: str) -> Self: ...
+    def __iter__(self) -> Iterator[NDFrameT]: ...
     @overload
     def aggregate(
         self: BaseWindow[Series], func: AggFuncTypeBase, *args: Any, **kwargs: Any
@@ -148,7 +168,7 @@ dtype: float64
         """
         pass
     def var(
-        self, ddof: int = ..., numeric_only: bool = ..., *args: Any, **kwargs: Any
+        self, ddof: int = ..., numeric_only: bool = ..., **kwargs: Any
     ) -> NDFrameT:
         """
 Calculate the rolling weighted window variance.
@@ -199,7 +219,7 @@ dtype: float64
         """
         pass
     def std(
-        self, ddof: int = ..., numeric_only: bool = ..., *args: Any, **kwargs: Any
+        self, ddof: int = ..., numeric_only: bool = ..., **kwargs: Any
     ) -> NDFrameT:
         """
 Calculate the rolling weighted window standard deviation.
@@ -250,8 +270,8 @@ dtype: float64
         """
         pass
 
-class RollingAndExpandingMixin(BaseWindow[NDFrameT], Generic[NDFrameT]):
-    def count(self) -> NDFrameT:
+class RollingAndExpandingMixin(BaseWindow[NDFrameT]):
+    def count(self, numeric_only: bool = ...) -> NDFrameT:
         """
 Calculate the rolling count of non NaN observations.
 
@@ -370,7 +390,6 @@ dtype: float64
     def sum(
         self,
         numeric_only: bool = ...,
-        *,
         engine: WindowingEngine = ...,
         engine_kwargs: WindowingEngineKwargs = ...,
     ) -> NDFrameT:
@@ -466,7 +485,6 @@ For DataFrame, each sum is computed column-wise.
     def max(
         self,
         numeric_only: bool = ...,
-        *,
         engine: WindowingEngine = ...,
         engine_kwargs: WindowingEngineKwargs = ...,
     ) -> NDFrameT:
@@ -526,7 +544,6 @@ dtype: float64
     def min(
         self,
         numeric_only: bool = ...,
-        *,
         engine: WindowingEngine = ...,
         engine_kwargs: WindowingEngineKwargs = ...,
     ) -> NDFrameT:
@@ -589,7 +606,6 @@ dtype: float64
     def mean(
         self,
         numeric_only: bool = ...,
-        *,
         engine: WindowingEngine = ...,
         engine_kwargs: WindowingEngineKwargs = ...,
     ) -> NDFrameT:
@@ -722,7 +738,6 @@ dtype: float64
         self,
         ddof: int = ...,
         numeric_only: bool = ...,
-        *,
         engine: WindowingEngine = ...,
         engine_kwargs: WindowingEngineKwargs = ...,
     ) -> NDFrameT:
@@ -793,7 +808,6 @@ dtype: float64
         self,
         ddof: int = ...,
         numeric_only: bool = ...,
-        *,
         engine: WindowingEngine = ...,
         engine_kwargs: WindowingEngineKwargs = ...,
     ) -> NDFrameT:
@@ -902,11 +916,7 @@ Examples
 dtype: float64
         """
         pass
-    def sem(
-        self,
-        ddof: int = ...,
-        numeric_only: bool = ...,
-    ) -> NDFrameT:
+    def sem(self, ddof: int = ..., numeric_only: bool = ...) -> NDFrameT:
         """
 Calculate the rolling standard error of mean.
 
@@ -998,7 +1008,7 @@ dtype: float64
         pass
     def quantile(
         self,
-        quantile: float,
+        q: float,
         interpolation: QuantileInterpolation = ...,
         numeric_only: bool = ...,
     ) -> NDFrameT:
@@ -1311,15 +1321,5 @@ array([[1.        , 0.55536811],
         """
         pass
 
-class Rolling(RollingAndExpandingMixin[NDFrameT]):
-    def apply(
-        self,
-        func: Callable[..., Any],
-        raw: bool = ...,
-        engine: WindowingEngine = ...,
-        engine_kwargs: WindowingEngineKwargs | None = ...,
-        args: tuple[Any, ...] | None = ...,
-        kwargs: dict[str, Any] | None = ...,
-    ) -> NDFrameT: ...
-
-class RollingGroupby(BaseWindowGroupby[NDFrameT], Rolling): ...
+class Rolling(RollingAndExpandingMixin[NDFrameT]): ...
+class RollingGroupby(BaseWindowGroupby[NDFrameT], Rolling[NDFrameT]): ...

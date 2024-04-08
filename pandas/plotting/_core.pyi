@@ -829,10 +829,12 @@ matplotlib.axes.Axes or np.ndarray of them
     @overload
     def kde(
         self,
-        bw_method: Literal["scott", "silverman"]
-        | float
-        | Callable[[gaussian_kde], float]
-        | None = ...,
+        bw_method: (
+            Literal["scott", "silverman"]
+            | float
+            | Callable[[gaussian_kde], float]
+            | None
+        ) = ...,
         ind: npt.NDArray[np.float_] | int | None = ...,
         *,
         subplots: Literal[False] | None = ...,
@@ -841,10 +843,12 @@ matplotlib.axes.Axes or np.ndarray of them
     @overload
     def kde(
         self,
-        bw_method: Literal["scott", "silverman"]
-        | float
-        | Callable[[gaussian_kde], float]
-        | None = ...,
+        bw_method: (
+            Literal["scott", "silverman"]
+            | float
+            | Callable[[gaussian_kde], float]
+            | None
+        ) = ...,
         ind: npt.NDArray[np.float_] | int | None = ...,
         *,
         subplots: Literal[True],

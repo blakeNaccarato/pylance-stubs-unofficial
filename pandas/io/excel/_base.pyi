@@ -34,13 +34,15 @@ from pandas._typing import (
 
 @overload
 def read_excel(
-    io: FilePath
-    | ReadBuffer[bytes]
-    | ExcelFile
-    | Workbook
-    | Book
-    | OpenDocument
-    | pyxlsb.workbook.Workbook,
+    io: (
+        FilePath
+        | ReadBuffer[bytes]
+        | ExcelFile
+        | Workbook
+        | Book
+        | OpenDocument
+        | pyxlsb.workbook.Workbook
+    ),
     sheet_name: list[IntStrT],
     *,
     header: int | Sequence[int] | None = ...,
@@ -58,10 +60,12 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: bool
-    | Sequence[int]
-    | Sequence[Sequence[str] | Sequence[int]]
-    | dict[str, Sequence[int] | list[str]] = ...,
+    parse_dates: (
+        bool
+        | Sequence[int]
+        | Sequence[Sequence[str] | Sequence[int]]
+        | dict[str, Sequence[int] | list[str]]
+    ) = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -363,13 +367,15 @@ Comment lines in the excel input file can be skipped using the
     pass
 @overload
 def read_excel(
-    io: FilePath
-    | ReadBuffer[bytes]
-    | ExcelFile
-    | Workbook
-    | Book
-    | OpenDocument
-    | pyxlsb.workbook.Workbook,
+    io: (
+        FilePath
+        | ReadBuffer[bytes]
+        | ExcelFile
+        | Workbook
+        | Book
+        | OpenDocument
+        | pyxlsb.workbook.Workbook
+    ),
     sheet_name: None,
     *,
     header: int | Sequence[int] | None = ...,
@@ -387,10 +393,12 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: bool
-    | Sequence[int]
-    | Sequence[Sequence[str] | Sequence[int]]
-    | dict[str, Sequence[int] | list[str]] = ...,
+    parse_dates: (
+        bool
+        | Sequence[int]
+        | Sequence[Sequence[str] | Sequence[int]]
+        | dict[str, Sequence[int] | list[str]]
+    ) = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -402,13 +410,15 @@ def read_excel(
 @overload
 # mypy says this won't be matched
 def read_excel(  # type: ignore[misc]
-    io: FilePath
-    | ReadBuffer[bytes]
-    | ExcelFile
-    | Workbook
-    | Book
-    | OpenDocument
-    | pyxlsb.workbook.Workbook,
+    io: (
+        FilePath
+        | ReadBuffer[bytes]
+        | ExcelFile
+        | Workbook
+        | Book
+        | OpenDocument
+        | pyxlsb.workbook.Workbook
+    ),
     sheet_name: list[int | str],
     *,
     header: int | Sequence[int] | None = ...,
@@ -426,10 +436,12 @@ def read_excel(  # type: ignore[misc]
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: bool
-    | Sequence[int]
-    | Sequence[Sequence[str] | Sequence[int]]
-    | dict[str, Sequence[int] | list[str]] = ...,
+    parse_dates: (
+        bool
+        | Sequence[int]
+        | Sequence[Sequence[str] | Sequence[int]]
+        | dict[str, Sequence[int] | list[str]]
+    ) = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -440,13 +452,15 @@ def read_excel(  # type: ignore[misc]
 ) -> dict[int | str, DataFrame]: ...
 @overload
 def read_excel(
-    io: FilePath
-    | ReadBuffer[bytes]
-    | ExcelFile
-    | Workbook
-    | Book
-    | OpenDocument
-    | pyxlsb.workbook.Workbook,
+    io: (
+        FilePath
+        | ReadBuffer[bytes]
+        | ExcelFile
+        | Workbook
+        | Book
+        | OpenDocument
+        | pyxlsb.workbook.Workbook
+    ),
     sheet_name: int | str = ...,
     *,
     header: int | Sequence[int] | None = ...,
@@ -464,10 +478,12 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: bool
-    | Sequence[int]
-    | Sequence[Sequence[str] | Sequence[int]]
-    | dict[str, Sequence[int] | list[str]] = ...,
+    parse_dates: (
+        bool
+        | Sequence[int]
+        | Sequence[Sequence[str] | Sequence[int]]
+        | dict[str, Sequence[int] | list[str]]
+    ) = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -537,10 +553,12 @@ class ExcelFile:
         skiprows: int | Sequence[int] | Callable[[object], bool] | None = ...,
         nrows: int | None = ...,
         na_values: Sequence[str] | dict[str | int, Sequence[str]] = ...,
-        parse_dates: bool
-        | Sequence[int]
-        | Sequence[Sequence[str] | Sequence[int]]
-        | dict[str, Sequence[int] | list[str]] = ...,
+        parse_dates: (
+            bool
+            | Sequence[int]
+            | Sequence[Sequence[str] | Sequence[int]]
+            | dict[str, Sequence[int] | list[str]]
+        ) = ...,
         date_parser: Callable | None = ...,
         thousands: str | None = ...,
         comment: str | None = ...,
@@ -563,10 +581,12 @@ class ExcelFile:
         skiprows: int | Sequence[int] | Callable[[object], bool] | None = ...,
         nrows: int | None = ...,
         na_values: Sequence[str] | dict[str | int, Sequence[str]] = ...,
-        parse_dates: bool
-        | Sequence[int]
-        | Sequence[Sequence[str] | Sequence[int]]
-        | dict[str, Sequence[int] | list[str]] = ...,
+        parse_dates: (
+            bool
+            | Sequence[int]
+            | Sequence[Sequence[str] | Sequence[int]]
+            | dict[str, Sequence[int] | list[str]]
+        ) = ...,
         date_parser: Callable | None = ...,
         thousands: str | None = ...,
         comment: str | None = ...,

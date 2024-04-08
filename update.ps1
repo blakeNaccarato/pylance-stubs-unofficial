@@ -4,10 +4,14 @@ function Update-PylanceStubs {
     #>
 
     # Ensure we're up to date
+    $oldErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
     git pull
+    $ErrorActionPreference = $oldErrorActionPreference
 
     # Remove existing stubs
-    Get-ChildItem -Exclude ('README.md', 'update.ps1', '.vscode') | Remove-Item -Recurse
+    Get-ChildItem -Exclude ('.pre-commit-config.yaml', '.vscode', 'README.md', 'update.ps1') |
+        Remove-Item -Recurse
 
     # Get the latest release
     $__ = @{

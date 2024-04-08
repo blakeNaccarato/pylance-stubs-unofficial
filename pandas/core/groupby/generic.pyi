@@ -1,7 +1,9 @@
 from collections.abc import (
     Callable,
+    Hashable,
     Iterable,
     Iterator,
+    Mapping,
     Sequence,
 )
 from typing import (
@@ -9,166 +11,58 @@ from typing import (
     Generic,
     Literal,
     NamedTuple,
+    final,
     overload,
 )
 
-from matplotlib.axes import (
-    Axes as PlotAxes,
-    SubplotBase as AxesSubplot,
-)
+from matplotlib.axes import Axes as PlotAxes
+import numpy as np
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
-from pandas.core.groupby.groupby import (  # , get_groupby as get_groupby
-    GroupBy as GroupBy,
+from pandas.core.groupby.groupby import (
+    GroupBy,
+    GroupByPlot,
 )
-from pandas.core.groupby.grouper import Grouper
 from pandas.core.series import Series
-from typing_extensions import TypeAlias
+from typing_extensions import (
+    Self,
+    TypeAlias,
+)
 
+from pandas._libs.lib import NoDefault
 from pandas._typing import (
     S1,
     AggFuncTypeBase,
     AggFuncTypeFrame,
+    ArrayLike,
     Axis,
     ByT,
+    CorrelationMethod,
+    Dtype,
+    IndexLabel,
     Level,
     ListLike,
-    RandomState,
     Scalar,
+    TakeIndexer,
+    WindowingEngine,
+    WindowingEngineKwargs,
 )
 
 AggScalar: TypeAlias = str | Callable[..., Any]
-ScalarResult = ...
 
 class NamedAgg(NamedTuple):
-    column: str = ...
-    aggfunc: AggScalar = ...
+    column: str
+    aggfunc: AggScalar
 
-def generate_property(name: str, klass: type[NDFrame]): ...
-
-class SeriesGroupBy(GroupBy, Generic[S1, ByT]):
-    def any(self, skipna: bool = ...) -> Series[bool]: ...
-    def all(self, skipna: bool = ...) -> Series[bool]: ...
-    def apply(self, func, *args, **kwargs) -> Series:
-        """
-Apply function ``func`` group-wise and combine the results together.
-
-The function passed to ``apply`` must take a series as its first
-argument and return a DataFrame, Series or scalar. ``apply`` will
-then take care of combining the results back together into a single
-dataframe or series. ``apply`` is therefore a highly flexible
-grouping method.
-
-While ``apply`` is a very flexible method, its downside is that
-using it can be quite a bit slower than using more specific methods
-like ``agg`` or ``transform``. Pandas offers a wide range of method that will
-be much faster than using ``apply`` for their specific purposes, so try to
-use them before reaching for ``apply``.
-
-Parameters
-----------
-func : callable
-    A callable that takes a series as its first argument, and
-    returns a dataframe, a series or a scalar. In addition the
-    callable may take positional and keyword arguments.
-include_groups : bool, default True
-    When True, will attempt to apply ``func`` to the groupings in
-    the case that they are columns of the DataFrame. If this raises a
-    TypeError, the result will be computed with the groupings excluded.
-    When False, the groupings will be excluded when applying ``func``.
-
-    .. versionadded:: 2.2.0
-
-    .. deprecated:: 2.2.0
-
-       Setting include_groups to True is deprecated. Only the value
-       False will be allowed in a future version of pandas.
-
-args, kwargs : tuple and dict
-    Optional positional and keyword arguments to pass to ``func``.
-
-Returns
--------
-Series or DataFrame
-
-See Also
---------
-pipe : Apply function to the full GroupBy object instead of to each
-    group.
-aggregate : Apply aggregate function to the GroupBy object.
-transform : Apply function column-by-column to the GroupBy object.
-Series.apply : Apply a function to a Series.
-DataFrame.apply : Apply a function to each row or column of a DataFrame.
-
-Notes
------
-
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    see the examples below.
-
-Functions that mutate the passed object can produce unexpected
-behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
-for more details.
-
-Examples
---------
-
->>> s = pd.Series([0, 1, 2], index='a a b'.split())
->>> g1 = s.groupby(s.index, group_keys=False)
->>> g2 = s.groupby(s.index, group_keys=True)
-
-From ``s`` above we can see that ``g`` has two groups, ``a`` and ``b``.
-Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
-differ in their ``group_keys`` argument. Calling `apply` in various ways,
-we can get different grouping results:
-
-Example 1: The function passed to `apply` takes a Series as
-its argument and returns a Series.  `apply` combines the result for
-each group together into a new Series.
-
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``.
-
->>> g1.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
-a    0.0
-a    2.0
-b    1.0
-dtype: float64
-
-In the above, the groups are not part of the index. We can have them included
-by using ``g2`` where ``group_keys=True``:
-
->>> g2.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
-a  a    0.0
-   a    2.0
-b  b    1.0
-dtype: float64
-
-Example 2: The function passed to `apply` takes a Series as
-its argument and returns a scalar. `apply` combines the result for
-each group together into a Series, including setting the index as
-appropriate:
-
->>> g1.apply(lambda x: x.max() - x.min())
-a    1
-b    0
-dtype: int64
-
-The ``group_keys`` argument has no effect here because the result is not
-like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
-to the input.
-
->>> g2.apply(lambda x: x.max() - x.min())
-a    1
-b    0
-dtype: int64
-        """
-        pass
+class SeriesGroupBy(GroupBy[Series[S1]], Generic[S1, ByT]):
     @overload
-    def aggregate(self, func: list[AggFuncTypeBase], *args, **kwargs) -> DataFrame:
+    def aggregate(
+        self,
+        func: list[AggFuncTypeBase],
+        *args,
+        engine: WindowingEngine = ...,
+        engine_kwargs: WindowingEngineKwargs = ...,
+        **kwargs,
+    ) -> DataFrame:
         """
 Aggregate using one or more operations over the specified axis.
 
@@ -298,9 +192,23 @@ dtype: float64
         """
         pass
     @overload
-    def aggregate(self, func: AggFuncTypeBase, *args, **kwargs) -> Series: ...
+    def aggregate(
+        self,
+        func: AggFuncTypeBase | None = ...,
+        *args,
+        engine: WindowingEngine = ...,
+        engine_kwargs: WindowingEngineKwargs = ...,
+        **kwargs,
+    ) -> Series: ...
     agg = aggregate
-    def transform(self, func: Callable | str, *args, **kwargs) -> Series:
+    def transform(
+        self,
+        func: Callable | str,
+        *args,
+        engine: WindowingEngine = ...,
+        engine_kwargs: WindowingEngineKwargs = ...,
+        **kwargs,
+    ) -> Series:
         """
 Call function producing a same-indexed Series on each group.
 
@@ -434,9 +342,18 @@ Parrot     30
 Name: Max Speed, dtype: int64
         """
         pass
-    def filter(self, func, dropna: bool = ..., *args, **kwargs): ...
-    def nunique(self, dropna: bool = ...) -> Series: ...
-    def describe(self, **kwargs) -> DataFrame:
+    def filter(
+        self, func: Callable | str, dropna: bool = ..., *args, **kwargs
+    ) -> Series: ...
+    def nunique(self, dropna: bool = ...) -> Series[int]: ...
+    # describe delegates to super() method but here it has keyword-only parameters
+    def describe(  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
+        self,
+        *,
+        percentiles: Iterable[float] | None = ...,
+        include: Literal["all"] | list[Dtype] | None = ...,
+        exclude: list[Dtype] | None = ...,
+    ) -> DataFrame:
         """
 Generate descriptive statistics.
 
@@ -691,34 +608,231 @@ max            NaN      3.0
         bins=...,
         dropna: bool = ...,
     ) -> Series[float]: ...
-    def count(self) -> Series[int]: ...
-    def pct_change(
+    def fillna(
         self,
-        periods: int = ...,
-        fill_method: str = ...,
-        limit=...,
-        freq=...,
-        axis: Axis = ...,
-    ) -> Series[float]: ...
-    # Overrides and others from original pylance stubs
+        value: (
+            Scalar | ArrayLike | Series | DataFrame | Mapping[Hashable, Scalar] | None
+        ) = ...,
+        method: Literal["bfill", "ffill"] | None = ...,
+        axis: Axis | None | NoDefault = ...,
+        inplace: bool = ...,
+        limit: int | None = ...,
+        downcast: dict | None | NoDefault = ...,
+    ) -> Series[S1] | None: ...
+    def take(
+        self,
+        indices: TakeIndexer,
+        axis: Axis | NoDefault = ...,
+        **kwargs,
+    ) -> Series[S1]: ...
+    def skew(
+        self,
+        axis: Axis | NoDefault = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series: ...
     @property
-    def is_monotonic_increasing(self) -> bool: ...
-    @property
-    def is_monotonic_decreasing(self) -> bool: ...
-    def bfill(self, limit: int | None = ...) -> Series[S1]: ...
-    def cummax(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
-    def cummin(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
-    def cumprod(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
-    def cumsum(self, axis: Axis = ..., **kwargs) -> Series[S1]: ...
-    def ffill(self, limit: int | None = ...) -> Series[S1]: ...
-    def first(self, **kwargs) -> Series[S1]: ...
-    def head(self, n: int = ...) -> Series[S1]: ...
-    def last(self, **kwargs) -> Series[S1]: ...
-    def max(self, **kwargs) -> Series[S1]: ...
-    def mean(self, **kwargs) -> Series[S1]: ...
-    def median(self, **kwargs) -> Series[S1]: ...
-    def min(self, **kwargs) -> Series[S1]: ...
-    def nlargest(self, n: int = ..., keep: str = ...) -> Series[S1]:
+    def plot(self) -> GroupByPlot[Self]:
+        """
+Make plots of Series or DataFrame.
+
+Uses the backend specified by the
+option ``plotting.backend``. By default, matplotlib is used.
+
+Parameters
+----------
+data : Series or DataFrame
+    The object for which the method is called.
+x : label or position, default None
+    Only used if data is a DataFrame.
+y : label, position or list of label, positions, default None
+    Allows plotting of one column versus another. Only used if data is a
+    DataFrame.
+kind : str
+    The kind of plot to produce:
+
+    - 'line' : line plot (default)
+    - 'bar' : vertical bar plot
+    - 'barh' : horizontal bar plot
+    - 'hist' : histogram
+    - 'box' : boxplot
+    - 'kde' : Kernel Density Estimation plot
+    - 'density' : same as 'kde'
+    - 'area' : area plot
+    - 'pie' : pie plot
+    - 'scatter' : scatter plot (DataFrame only)
+    - 'hexbin' : hexbin plot (DataFrame only)
+ax : matplotlib axes object, default None
+    An axes of the current figure.
+subplots : bool or sequence of iterables, default False
+    Whether to group columns into subplots:
+
+    - ``False`` : No subplots will be used
+    - ``True`` : Make separate subplots for each column.
+    - sequence of iterables of column labels: Create a subplot for each
+      group of columns. For example `[('a', 'c'), ('b', 'd')]` will
+      create 2 subplots: one with columns 'a' and 'c', and one
+      with columns 'b' and 'd'. Remaining columns that aren't specified
+      will be plotted in additional subplots (one per column).
+
+      .. versionadded:: 1.5.0
+
+sharex : bool, default True if ax is None else False
+    In case ``subplots=True``, share x axis and set some x axis labels
+    to invisible; defaults to True if ax is None otherwise False if
+    an ax is passed in; Be aware, that passing in both an ax and
+    ``sharex=True`` will alter all x axis labels for all axis in a figure.
+sharey : bool, default False
+    In case ``subplots=True``, share y axis and set some y axis labels to invisible.
+layout : tuple, optional
+    (rows, columns) for the layout of subplots.
+figsize : a tuple (width, height) in inches
+    Size of a figure object.
+use_index : bool, default True
+    Use index as ticks for x axis.
+title : str or list
+    Title to use for the plot. If a string is passed, print the string
+    at the top of the figure. If a list is passed and `subplots` is
+    True, print each item in the list above the corresponding subplot.
+grid : bool, default None (matlab style default)
+    Axis grid lines.
+legend : bool or {'reverse'}
+    Place legend on axis subplots.
+style : list or dict
+    The matplotlib line style per column.
+logx : bool or 'sym', default False
+    Use log scaling or symlog scaling on x axis.
+
+logy : bool or 'sym' default False
+    Use log scaling or symlog scaling on y axis.
+
+loglog : bool or 'sym', default False
+    Use log scaling or symlog scaling on both x and y axes.
+
+xticks : sequence
+    Values to use for the xticks.
+yticks : sequence
+    Values to use for the yticks.
+xlim : 2-tuple/list
+    Set the x limits of the current axes.
+ylim : 2-tuple/list
+    Set the y limits of the current axes.
+xlabel : label, optional
+    Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
+    x-column name for planar plots.
+
+    .. versionchanged:: 2.0.0
+
+        Now applicable to histograms.
+
+ylabel : label, optional
+    Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+    y-column name for planar plots.
+
+    .. versionchanged:: 2.0.0
+
+        Now applicable to histograms.
+
+rot : float, default None
+    Rotation for ticks (xticks for vertical, yticks for horizontal
+    plots).
+fontsize : float, default None
+    Font size for xticks and yticks.
+colormap : str or matplotlib colormap object, default None
+    Colormap to select colors from. If string, load colormap with that
+    name from matplotlib.
+colorbar : bool, optional
+    If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
+    plots).
+position : float
+    Specify relative alignments for bar plot layout.
+    From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+    (center).
+table : bool, Series or DataFrame, default False
+    If True, draw a table using the data in the DataFrame and the data
+    will be transposed to meet matplotlib's default layout.
+    If a Series or DataFrame is passed, use passed data to draw a
+    table.
+yerr : DataFrame, Series, array-like, dict and str
+    See :ref:`Plotting with Error Bars <visualization.errorbars>` for
+    detail.
+xerr : DataFrame, Series, array-like, dict and str
+    Equivalent to yerr.
+stacked : bool, default False in line and bar plots, and True in area plot
+    If True, create stacked plot.
+secondary_y : bool or sequence, default False
+    Whether to plot on the secondary y-axis if a list/tuple, which
+    columns to plot on secondary y-axis.
+mark_right : bool, default True
+    When using a secondary_y axis, automatically mark the column
+    labels with "(right)" in the legend.
+include_bool : bool, default is False
+    If True, boolean values can be plotted.
+backend : str, default None
+    Backend to use instead of the backend specified in the option
+    ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
+    specify the ``plotting.backend`` for the whole session, set
+    ``pd.options.plotting.backend``.
+**kwargs
+    Options to pass to matplotlib plotting method.
+
+Returns
+-------
+:class:`matplotlib.axes.Axes` or numpy.ndarray of them
+    If the backend is not the default matplotlib one, the return value
+    will be the object returned by the backend.
+
+Notes
+-----
+- See matplotlib documentation online for more on this subject
+- If `kind` = 'bar' or 'barh', you can specify relative alignments
+  for bar plot layout by `position` keyword.
+  From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+  (center)
+
+Examples
+--------
+For Series:
+
+.. plot::
+    :context: close-figs
+
+    >>> ser = pd.Series([1, 2, 3, 3])
+    >>> plot = ser.plot(kind='hist', title="My plot")
+
+For DataFrame:
+
+.. plot::
+    :context: close-figs
+
+    >>> df = pd.DataFrame({'length': [1.5, 0.5, 1.2, 0.9, 3],
+    ...                   'width': [0.7, 0.2, 0.15, 0.2, 1.1]},
+    ...                   index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+    >>> plot = df.plot(title="DataFrame Plot")
+
+For SeriesGroupBy:
+
+.. plot::
+    :context: close-figs
+
+    >>> lst = [-1, -2, -3, 1, 2, 3]
+    >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+    >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+For DataFrameGroupBy:
+
+.. plot::
+    :context: close-figs
+
+    >>> df = pd.DataFrame({"col1" : [1, 2, 3, 4],
+    ...                   "col2" : ["A", "B", "A", "B"]})
+    >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
+        """
+        pass
+    def nlargest(
+        self, n: int = ..., keep: Literal["first", "last", "all"] = ...
+    ) -> Series[S1]:
         """
 Return the largest `n` elements.
 
@@ -815,7 +929,9 @@ Brunei        434000
 dtype: int64
         """
         pass
-    def nsmallest(self, n: int = ..., keep: str = ...) -> Series[S1]:
+    def nsmallest(
+        self, n: int = ..., keep: Literal["first", "last", "all"] = ...
+    ) -> Series[S1]:
         """
 Return the smallest `n` elements.
 
@@ -911,23 +1027,250 @@ Anguilla    11300
 dtype: int64
         """
         pass
-    def nth(self, n: int | Sequence[int], dropna: str | None = ...) -> Series[S1]: ...
-    def sum(
+    def idxmin(self, axis: Axis | NoDefault = ..., skipna: bool = ...) -> Series:
+        """
+Return the row label of the minimum value.
+
+If multiple values equal the minimum, the first row label with that
+value is returned.
+
+Parameters
+----------
+axis : {0 or 'index'}
+    Unused. Parameter needed for compatibility with DataFrame.
+skipna : bool, default True
+    Exclude NA/null values. If the entire Series is NA, the result
+    will be NA.
+*args, **kwargs
+    Additional arguments and keywords have no effect but might be
+    accepted for compatibility with NumPy.
+
+Returns
+-------
+Index
+    Label of the minimum value.
+
+Raises
+------
+ValueError
+    If the Series is empty.
+
+See Also
+--------
+numpy.argmin : Return indices of the minimum values
+    along the given axis.
+DataFrame.idxmin : Return index of first occurrence of minimum
+    over requested axis.
+Series.idxmax : Return index *label* of the first occurrence
+    of maximum of values.
+
+Notes
+-----
+This method is the Series version of ``ndarray.argmin``. This method
+returns the label of the minimum, while ``ndarray.argmin`` returns
+the position. To get the position, use ``series.values.argmin()``.
+
+Examples
+--------
+>>> s = pd.Series(data=[1, None, 4, 1],
+...               index=['A', 'B', 'C', 'D'])
+>>> s
+A    1.0
+B    NaN
+C    4.0
+D    1.0
+dtype: float64
+
+>>> s.idxmin()
+'A'
+
+If `skipna` is False and there is an NA value in the data,
+the function returns ``nan``.
+
+>>> s.idxmin(skipna=False)
+nan
+        """
+        pass
+    def idxmax(self, axis: Axis | NoDefault = ..., skipna: bool = ...) -> Series:
+        """
+Return the row label of the maximum value.
+
+If multiple values equal the maximum, the first row label with that
+value is returned.
+
+Parameters
+----------
+axis : {0 or 'index'}
+    Unused. Parameter needed for compatibility with DataFrame.
+skipna : bool, default True
+    Exclude NA/null values. If the entire Series is NA, the result
+    will be NA.
+*args, **kwargs
+    Additional arguments and keywords have no effect but might be
+    accepted for compatibility with NumPy.
+
+Returns
+-------
+Index
+    Label of the maximum value.
+
+Raises
+------
+ValueError
+    If the Series is empty.
+
+See Also
+--------
+numpy.argmax : Return indices of the maximum values
+    along the given axis.
+DataFrame.idxmax : Return index of first occurrence of maximum
+    over requested axis.
+Series.idxmin : Return index *label* of the first occurrence
+    of minimum of values.
+
+Notes
+-----
+This method is the Series version of ``ndarray.argmax``. This method
+returns the label of the maximum, while ``ndarray.argmax`` returns
+the position. To get the position, use ``series.values.argmax()``.
+
+Examples
+--------
+>>> s = pd.Series(data=[1, None, 4, 3, 4],
+...               index=['A', 'B', 'C', 'D', 'E'])
+>>> s
+A    1.0
+B    NaN
+C    4.0
+D    3.0
+E    4.0
+dtype: float64
+
+>>> s.idxmax()
+'C'
+
+If `skipna` is False and there is an NA value in the data,
+the function returns ``nan``.
+
+>>> s.idxmax(skipna=False)
+nan
+        """
+        pass
+    def corr(
         self,
-        numeric_only: bool = ...,
-        min_count: int = ...,
-        engine=...,
-        engine_kwargs=...,
-    ) -> Series[S1]: ...
-    def prod(self, numeric_only: bool = ..., min_count: int = ...) -> Series[S1]: ...
-    def sem(self, ddof: int = ..., numeric_only: bool = ...) -> Series[float]: ...
-    def std(self, ddof: int = ..., numeric_only: bool = ...) -> Series[float]: ...
-    def var(self, ddof: int = ..., numeric_only: bool = ...) -> Series[float]: ...
-    def tail(self, n: int = ...) -> Series[S1]: ...
-    def unique(self) -> Series: ...
+        other: Series,
+        method: CorrelationMethod = ...,
+        min_periods: int | None = ...,
+    ) -> Series:
+        """
+Compute correlation with `other` Series, excluding missing values.
+
+The two `Series` objects are not required to be the same length and will be
+aligned internally before the correlation function is applied.
+
+Parameters
+----------
+other : Series
+    Series with which to compute the correlation.
+method : {'pearson', 'kendall', 'spearman'} or callable
+    Method used to compute correlation:
+
+    - pearson : Standard correlation coefficient
+    - kendall : Kendall Tau correlation coefficient
+    - spearman : Spearman rank correlation
+    - callable: Callable with input two 1d ndarrays and returning a float.
+
+    .. warning::
+        Note that the returned matrix from corr will have 1 along the
+        diagonals and will be symmetric regardless of the callable's
+        behavior.
+min_periods : int, optional
+    Minimum number of observations needed to have a valid result.
+
+Returns
+-------
+float
+    Correlation with other.
+
+See Also
+--------
+DataFrame.corr : Compute pairwise correlation between columns.
+DataFrame.corrwith : Compute pairwise correlation with another
+    DataFrame or Series.
+
+Notes
+-----
+Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
+
+* `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+* `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+* `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
+``corr()`` automatically considers values with matching indices.
+
+Examples
+--------
+>>> def histogram_intersection(a, b):
+...     v = np.minimum(a, b).sum().round(decimals=1)
+...     return v
+>>> s1 = pd.Series([.2, .0, .6, .2])
+>>> s2 = pd.Series([.3, .6, .0, .1])
+>>> s1.corr(s2, method=histogram_intersection)
+0.3
+
+Pandas auto-aligns the values with matching indices
+
+>>> s1 = pd.Series([1, 2, 3], index=[0, 1, 2])
+>>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
+>>> s1.corr(s2)
+-1.0
+        """
+        pass
+    def cov(
+        self, other: Series, min_periods: int | None = ..., ddof: int | None = ...
+    ) -> Series:
+        """
+Compute covariance with Series, excluding missing values.
+
+The two `Series` objects are not required to be the same length and
+will be aligned internally before the covariance is calculated.
+
+Parameters
+----------
+other : Series
+    Series with which to compute the covariance.
+min_periods : int, optional
+    Minimum number of observations needed to have a valid result.
+ddof : int, default 1
+    Delta degrees of freedom.  The divisor used in calculations
+    is ``N - ddof``, where ``N`` represents the number of elements.
+
+Returns
+-------
+float
+    Covariance between Series and other normalized by N-1
+    (unbiased estimator).
+
+See Also
+--------
+DataFrame.cov : Compute pairwise covariance of columns.
+
+Examples
+--------
+>>> s1 = pd.Series([0.90010907, 0.13484424, 0.62036035])
+>>> s2 = pd.Series([0.12528585, 0.26962463, 0.51111198])
+>>> s1.cov(s2)
+-0.01685762652715874
+        """
+        pass
+    @property
+    def is_monotonic_increasing(self) -> Series[bool]: ...
+    @property
+    def is_monotonic_decreasing(self) -> Series[bool]: ...
     def hist(
         self,
-        by=...,
+        by: IndexLabel | None = ...,
         ax: PlotAxes | None = ...,
         grid: bool = ...,
         xlabelsize: int | None = ...,
@@ -935,11 +1278,24 @@ dtype: int64
         ylabelsize: int | None = ...,
         yrot: float | None = ...,
         figsize: tuple[float, float] | None = ...,
-        bins: int | Sequence = ...,
+        bins: int | Sequence[int] = ...,
         backend: str | None = ...,
         legend: bool = ...,
         **kwargs,
-    ) -> AxesSubplot:
+    ) -> Series: ...  # Series[Axes] but this is not allowed
+    @property
+    def dtype(self) -> Series:
+        """
+Return the dtype object of the underlying data.
+
+Examples
+--------
+>>> s = pd.Series([1, 2, 3])
+>>> s.dtype
+dtype('int64')
+        """
+        pass
+    def unique(self) -> Series:
         """
 Draw histogram of the input series using matplotlib.
 
@@ -1007,143 +1363,15 @@ For Groupby:
     >>> hist = ser.groupby(level=0).hist()
         """
         pass
-    def idxmax(self, axis: Axis = ..., skipna: bool = ...) -> Series:
-        """
-Return the row label of the maximum value.
+    # Overrides that provide more precise return types over the GroupBy class
+    @final  # type: ignore[misc]
+    def __iter__(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self,
+    ) -> Iterator[tuple[ByT, Series[S1]]]: ...
 
-If multiple values equal the maximum, the first row label with that
-value is returned.
-
-Parameters
-----------
-axis : {0 or 'index'}
-    Unused. Parameter needed for compatibility with DataFrame.
-skipna : bool, default True
-    Exclude NA/null values. If the entire Series is NA, the result
-    will be NA.
-*args, **kwargs
-    Additional arguments and keywords have no effect but might be
-    accepted for compatibility with NumPy.
-
-Returns
--------
-Index
-    Label of the maximum value.
-
-Raises
-------
-ValueError
-    If the Series is empty.
-
-See Also
---------
-numpy.argmax : Return indices of the maximum values
-    along the given axis.
-DataFrame.idxmax : Return index of first occurrence of maximum
-    over requested axis.
-Series.idxmin : Return index *label* of the first occurrence
-    of minimum of values.
-
-Notes
------
-This method is the Series version of ``ndarray.argmax``. This method
-returns the label of the maximum, while ``ndarray.argmax`` returns
-the position. To get the position, use ``series.values.argmax()``.
-
-Examples
---------
->>> s = pd.Series(data=[1, None, 4, 3, 4],
-...               index=['A', 'B', 'C', 'D', 'E'])
->>> s
-A    1.0
-B    NaN
-C    4.0
-D    3.0
-E    4.0
-dtype: float64
-
->>> s.idxmax()
-'C'
-
-If `skipna` is False and there is an NA value in the data,
-the function returns ``nan``.
-
->>> s.idxmax(skipna=False)
-nan
-        """
-        pass
-    def idxmin(self, axis: Axis = ..., skipna: bool = ...) -> Series:
-        """
-Return the row label of the minimum value.
-
-If multiple values equal the minimum, the first row label with that
-value is returned.
-
-Parameters
-----------
-axis : {0 or 'index'}
-    Unused. Parameter needed for compatibility with DataFrame.
-skipna : bool, default True
-    Exclude NA/null values. If the entire Series is NA, the result
-    will be NA.
-*args, **kwargs
-    Additional arguments and keywords have no effect but might be
-    accepted for compatibility with NumPy.
-
-Returns
--------
-Index
-    Label of the minimum value.
-
-Raises
-------
-ValueError
-    If the Series is empty.
-
-See Also
---------
-numpy.argmin : Return indices of the minimum values
-    along the given axis.
-DataFrame.idxmin : Return index of first occurrence of minimum
-    over requested axis.
-Series.idxmax : Return index *label* of the first occurrence
-    of maximum of values.
-
-Notes
------
-This method is the Series version of ``ndarray.argmin``. This method
-returns the label of the minimum, while ``ndarray.argmin`` returns
-the position. To get the position, use ``series.values.argmin()``.
-
-Examples
---------
->>> s = pd.Series(data=[1, None, 4, 1],
-...               index=['A', 'B', 'C', 'D'])
->>> s
-A    1.0
-B    NaN
-C    4.0
-D    1.0
-dtype: float64
-
->>> s.idxmin()
-'A'
-
-If `skipna` is False and there is an NA value in the data,
-the function returns ``nan``.
-
->>> s.idxmin(skipna=False)
-nan
-        """
-        pass
-    def __iter__(self) -> Iterator[tuple[ByT, Series[S1]]]: ...
-    def diff(self, periods: int = ..., axis: Axis = ...) -> Series: ...
-
-class DataFrameGroupBy(GroupBy, Generic[ByT]):
-    def any(self, skipna: bool = ...) -> DataFrame: ...
-    def all(self, skipna: bool = ...) -> DataFrame: ...
+class DataFrameGroupBy(GroupBy[DataFrame], Generic[ByT]):
     # error: Overload 3 for "apply" will never be used because its parameters overlap overload 1
-    @overload
+    @overload  # type: ignore[override]
     def apply(  # type: ignore[overload-overlap]
         self,
         func: Callable[[DataFrame], Scalar | list | dict],
@@ -1158,7 +1386,7 @@ class DataFrameGroupBy(GroupBy, Generic[ByT]):
         **kwargs,
     ) -> DataFrame: ...
     @overload
-    def apply(  # pyright: ignore[reportOverlappingOverload]
+    def apply(  # pyright: ignore[reportOverlappingOverload,reportIncompatibleMethodOverride]
         self,
         func: Callable[[Iterable], float],
         *args,
@@ -1166,9 +1394,16 @@ class DataFrameGroupBy(GroupBy, Generic[ByT]):
     ) -> DataFrame: ...
     # error: overload 1 overlaps overload 2 because of different return types
     @overload
-    def aggregate(self, arg: Literal["size"]) -> Series: ...  # type: ignore[overload-overlap]  # pyright: ignore[reportOverlappingOverload]
+    def aggregate(self, func: Literal["size"]) -> Series: ...  # type: ignore[overload-overlap]  # pyright: ignore[reportOverlappingOverload]
     @overload
-    def aggregate(self, arg: AggFuncTypeFrame = ..., *args, **kwargs) -> DataFrame:
+    def aggregate(
+        self,
+        func: AggFuncTypeFrame | None = ...,
+        *args,
+        engine: WindowingEngine = ...,
+        engine_kwargs: WindowingEngineKwargs = ...,
+        **kwargs,
+    ) -> DataFrame:
         """
 Aggregate using one or more operations over the specified axis.
 
@@ -1335,7 +1570,14 @@ A
         """
         pass
     agg = aggregate
-    def transform(self, func: Callable | str, *args, **kwargs) -> DataFrame:
+    def transform(
+        self,
+        func: Callable | str,
+        *args,
+        engine: WindowingEngine = ...,
+        engine_kwargs: WindowingEngineKwargs = ...,
+        **kwargs,
+    ) -> DataFrame:
         """
 Call function producing a same-indexed DataFrame on each group.
 
@@ -1483,18 +1725,33 @@ C  D
     def filter(
         self, func: Callable, dropna: bool = ..., *args, **kwargs
     ) -> DataFrame: ...
+    @overload
+    def __getitem__(  # type: ignore[overload-overlap]
+        self, key: Scalar | Hashable | tuple[Hashable, ...]
+    ) -> SeriesGroupBy[Any, ByT]: ...
+    @overload
+    def __getitem__(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, key: Iterable[Hashable] | slice
+    ) -> DataFrameGroupBy[ByT]: ...
     def nunique(self, dropna: bool = ...) -> DataFrame: ...
+    def idxmax(
+        self,
+        axis: Axis | None | NoDefault = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+    ) -> DataFrame: ...
+    def idxmin(
+        self,
+        axis: Axis | None | NoDefault = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+    ) -> DataFrame: ...
     @overload
-    def __getitem__(self, item: str) -> SeriesGroupBy[Any, ByT]: ...
-    @overload
-    def __getitem__(self, item: list[str]) -> DataFrameGroupBy[ByT]: ...
-    def count(self) -> DataFrame: ...
     def boxplot(
         self,
-        grouped: DataFrame,
-        subplots: bool = ...,
-        column: str | Sequence | None = ...,
-        fontsize: float | str = ...,
+        subplots: Literal[True] = ...,
+        column: IndexLabel | None = ...,
+        fontsize: float | str | None = ...,
         rot: float = ...,
         grid: bool = ...,
         ax: PlotAxes | None = ...,
@@ -1502,13 +1759,286 @@ C  D
         layout: tuple[int, int] | None = ...,
         sharex: bool = ...,
         sharey: bool = ...,
-        bins: int | Sequence = ...,
         backend: str | None = ...,
         **kwargs,
-    ) -> AxesSubplot | Sequence[AxesSubplot]: ...
-    # Overrides and others from original pylance stubs
-    # These are "properties" but properties can't have all these arguments?!
-    def corr(self, method: str | Callable, min_periods: int = ...) -> DataFrame:
+    ) -> Series: ...  # Series[PlotAxes] but this is not allowed
+    @overload
+    def boxplot(
+        self,
+        subplots: Literal[False],
+        column: IndexLabel | None = ...,
+        fontsize: float | str | None = ...,
+        rot: float = ...,
+        grid: bool = ...,
+        ax: PlotAxes | None = ...,
+        figsize: tuple[float, float] | None = ...,
+        layout: tuple[int, int] | None = ...,
+        sharex: bool = ...,
+        sharey: bool = ...,
+        backend: str | None = ...,
+        **kwargs,
+    ) -> PlotAxes: ...
+    @overload
+    def boxplot(
+        self,
+        subplots: bool,
+        column: IndexLabel | None = ...,
+        fontsize: float | str | None = ...,
+        rot: float = ...,
+        grid: bool = ...,
+        ax: PlotAxes | None = ...,
+        figsize: tuple[float, float] | None = ...,
+        layout: tuple[int, int] | None = ...,
+        sharex: bool = ...,
+        sharey: bool = ...,
+        backend: str | None = ...,
+        **kwargs,
+    ) -> PlotAxes | Series: ...  # Series[PlotAxes]
+    @overload
+    def value_counts(
+        self,
+        subset: ListLike | None = ...,
+        normalize: Literal[False] = ...,
+        sort: bool = ...,
+        ascending: bool = ...,
+        dropna: bool = ...,
+    ) -> Series[int]: ...
+    @overload
+    def value_counts(
+        self,
+        subset: ListLike | None,
+        normalize: Literal[True],
+        sort: bool = ...,
+        ascending: bool = ...,
+        dropna: bool = ...,
+    ) -> Series[float]: ...
+    def take(
+        self, indices: TakeIndexer, axis: Axis | None | NoDefault = ..., **kwargs
+    ) -> DataFrame: ...
+    @overload
+    def skew(  # type: ignore[overload-overlap]
+        self,
+        axis: Axis | None | NoDefault = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        *,
+        level: Level,
+        **kwargs,
+    ) -> DataFrame: ...
+    @overload
+    def skew(
+        self,
+        axis: Axis | None | NoDefault = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        *,
+        level: None = ...,
+        **kwargs,
+    ) -> Series: ...
+    @property
+    def plot(self) -> GroupByPlot[Self]:
+        """
+Make plots of Series or DataFrame.
+
+Uses the backend specified by the
+option ``plotting.backend``. By default, matplotlib is used.
+
+Parameters
+----------
+data : Series or DataFrame
+    The object for which the method is called.
+x : label or position, default None
+    Only used if data is a DataFrame.
+y : label, position or list of label, positions, default None
+    Allows plotting of one column versus another. Only used if data is a
+    DataFrame.
+kind : str
+    The kind of plot to produce:
+
+    - 'line' : line plot (default)
+    - 'bar' : vertical bar plot
+    - 'barh' : horizontal bar plot
+    - 'hist' : histogram
+    - 'box' : boxplot
+    - 'kde' : Kernel Density Estimation plot
+    - 'density' : same as 'kde'
+    - 'area' : area plot
+    - 'pie' : pie plot
+    - 'scatter' : scatter plot (DataFrame only)
+    - 'hexbin' : hexbin plot (DataFrame only)
+ax : matplotlib axes object, default None
+    An axes of the current figure.
+subplots : bool or sequence of iterables, default False
+    Whether to group columns into subplots:
+
+    - ``False`` : No subplots will be used
+    - ``True`` : Make separate subplots for each column.
+    - sequence of iterables of column labels: Create a subplot for each
+      group of columns. For example `[('a', 'c'), ('b', 'd')]` will
+      create 2 subplots: one with columns 'a' and 'c', and one
+      with columns 'b' and 'd'. Remaining columns that aren't specified
+      will be plotted in additional subplots (one per column).
+
+      .. versionadded:: 1.5.0
+
+sharex : bool, default True if ax is None else False
+    In case ``subplots=True``, share x axis and set some x axis labels
+    to invisible; defaults to True if ax is None otherwise False if
+    an ax is passed in; Be aware, that passing in both an ax and
+    ``sharex=True`` will alter all x axis labels for all axis in a figure.
+sharey : bool, default False
+    In case ``subplots=True``, share y axis and set some y axis labels to invisible.
+layout : tuple, optional
+    (rows, columns) for the layout of subplots.
+figsize : a tuple (width, height) in inches
+    Size of a figure object.
+use_index : bool, default True
+    Use index as ticks for x axis.
+title : str or list
+    Title to use for the plot. If a string is passed, print the string
+    at the top of the figure. If a list is passed and `subplots` is
+    True, print each item in the list above the corresponding subplot.
+grid : bool, default None (matlab style default)
+    Axis grid lines.
+legend : bool or {'reverse'}
+    Place legend on axis subplots.
+style : list or dict
+    The matplotlib line style per column.
+logx : bool or 'sym', default False
+    Use log scaling or symlog scaling on x axis.
+
+logy : bool or 'sym' default False
+    Use log scaling or symlog scaling on y axis.
+
+loglog : bool or 'sym', default False
+    Use log scaling or symlog scaling on both x and y axes.
+
+xticks : sequence
+    Values to use for the xticks.
+yticks : sequence
+    Values to use for the yticks.
+xlim : 2-tuple/list
+    Set the x limits of the current axes.
+ylim : 2-tuple/list
+    Set the y limits of the current axes.
+xlabel : label, optional
+    Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
+    x-column name for planar plots.
+
+    .. versionchanged:: 2.0.0
+
+        Now applicable to histograms.
+
+ylabel : label, optional
+    Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+    y-column name for planar plots.
+
+    .. versionchanged:: 2.0.0
+
+        Now applicable to histograms.
+
+rot : float, default None
+    Rotation for ticks (xticks for vertical, yticks for horizontal
+    plots).
+fontsize : float, default None
+    Font size for xticks and yticks.
+colormap : str or matplotlib colormap object, default None
+    Colormap to select colors from. If string, load colormap with that
+    name from matplotlib.
+colorbar : bool, optional
+    If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
+    plots).
+position : float
+    Specify relative alignments for bar plot layout.
+    From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+    (center).
+table : bool, Series or DataFrame, default False
+    If True, draw a table using the data in the DataFrame and the data
+    will be transposed to meet matplotlib's default layout.
+    If a Series or DataFrame is passed, use passed data to draw a
+    table.
+yerr : DataFrame, Series, array-like, dict and str
+    See :ref:`Plotting with Error Bars <visualization.errorbars>` for
+    detail.
+xerr : DataFrame, Series, array-like, dict and str
+    Equivalent to yerr.
+stacked : bool, default False in line and bar plots, and True in area plot
+    If True, create stacked plot.
+secondary_y : bool or sequence, default False
+    Whether to plot on the secondary y-axis if a list/tuple, which
+    columns to plot on secondary y-axis.
+mark_right : bool, default True
+    When using a secondary_y axis, automatically mark the column
+    labels with "(right)" in the legend.
+include_bool : bool, default is False
+    If True, boolean values can be plotted.
+backend : str, default None
+    Backend to use instead of the backend specified in the option
+    ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
+    specify the ``plotting.backend`` for the whole session, set
+    ``pd.options.plotting.backend``.
+**kwargs
+    Options to pass to matplotlib plotting method.
+
+Returns
+-------
+:class:`matplotlib.axes.Axes` or numpy.ndarray of them
+    If the backend is not the default matplotlib one, the return value
+    will be the object returned by the backend.
+
+Notes
+-----
+- See matplotlib documentation online for more on this subject
+- If `kind` = 'bar' or 'barh', you can specify relative alignments
+  for bar plot layout by `position` keyword.
+  From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+  (center)
+
+Examples
+--------
+For Series:
+
+.. plot::
+    :context: close-figs
+
+    >>> ser = pd.Series([1, 2, 3, 3])
+    >>> plot = ser.plot(kind='hist', title="My plot")
+
+For DataFrame:
+
+.. plot::
+    :context: close-figs
+
+    >>> df = pd.DataFrame({'length': [1.5, 0.5, 1.2, 0.9, 3],
+    ...                   'width': [0.7, 0.2, 0.15, 0.2, 1.1]},
+    ...                   index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+    >>> plot = df.plot(title="DataFrame Plot")
+
+For SeriesGroupBy:
+
+.. plot::
+    :context: close-figs
+
+    >>> lst = [-1, -2, -3, 1, 2, 3]
+    >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+    >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+For DataFrameGroupBy:
+
+.. plot::
+    :context: close-figs
+
+    >>> df = pd.DataFrame({"col1" : [1, 2, 3, 4],
+    ...                   "col2" : ["A", "B", "A", "B"]})
+    >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
+        """
+        pass
+    def corr(
+        self,
+        method: str | Callable[[np.ndarray, np.ndarray], float] = ...,
+        min_periods: int = ...,
+        numeric_only: bool = ...,
+    ) -> DataFrame:
         """
 Compute pairwise correlation of columns, excluding NA/null values.
 
@@ -1575,7 +2105,12 @@ dogs   1.0   NaN
 cats   NaN   1.0
         """
         pass
-    def cov(self, min_periods: int = ...) -> DataFrame:
+    def cov(
+        self,
+        min_periods: int | None = ...,
+        ddof: int | None = ...,
+        numeric_only: bool = ...,
+    ) -> DataFrame:
         """
 Compute pairwise covariance of columns, excluding NA/null values.
 
@@ -1683,15 +2218,62 @@ b       NaN  1.248003  0.191417
 c -0.150812  0.191417  0.895202
         """
         pass
-    def diff(self, periods: int = ..., axis: Axis = ...) -> DataFrame: ...
-    def bfill(self, limit: int | None = ...) -> DataFrame: ...
+    def hist(
+        self,
+        column: IndexLabel | None = ...,
+        by: IndexLabel | None = ...,
+        grid: bool = ...,
+        xlabelsize: int | None = ...,
+        xrot: float | None = ...,
+        ylabelsize: int | None = ...,
+        yrot: float | None = ...,
+        ax: PlotAxes | None = ...,
+        sharex: bool = ...,
+        sharey: bool = ...,
+        figsize: tuple[float, float] | None = ...,
+        layout: tuple[int, int] | None = ...,
+        bins: int | Sequence[int] = ...,
+        backend: str | None = ...,
+        legend: bool = ...,
+        **kwargs,
+    ) -> Series: ...  # Series[Axes] but this is not allowed
+    @property
+    def dtypes(self) -> Series:
+        """
+Return the dtypes in the DataFrame.
+
+This returns a Series with the data type of each column.
+The result's index is the original DataFrame's columns. Columns
+with mixed types are stored with the ``object`` dtype. See
+:ref:`the User Guide <basics.dtypes>` for more.
+
+Returns
+-------
+pandas.Series
+    The data type of each column.
+
+Examples
+--------
+>>> df = pd.DataFrame({'float': [1.0],
+...                    'int': [1],
+...                    'datetime': [pd.Timestamp('20180310')],
+...                    'string': ['foo']})
+>>> df.dtypes
+float              float64
+int                  int64
+datetime    datetime64[ns]
+string              object
+dtype: object
+        """
+        pass
     def corrwith(
         self,
-        other: DataFrame,
-        axis: Axis = ...,
+        other: DataFrame | Series,
+        axis: Axis | NoDefault = ...,
         drop: bool = ...,
-        method: str = ...,
-    ) -> Series:
+        method: CorrelationMethod = ...,
+        numeric_only: bool = ...,
+    ) -> DataFrame:
         """
 Compute pairwise correlation.
 
@@ -1757,46 +2339,7 @@ e    NaN
 dtype: float64
         """
         pass
-    def cummax(
-        self, axis: Axis = ..., numeric_only: bool = ..., **kwargs
-    ) -> DataFrame: ...
-    def cummin(
-        self, axis: Axis = ..., numeric_only: bool = ..., **kwargs
-    ) -> DataFrame: ...
-    def cumprod(self, axis: Axis = ..., **kwargs) -> DataFrame: ...
-    def cumsum(self, axis: Axis = ..., **kwargs) -> DataFrame: ...
-    def describe(self, **kwargs) -> DataFrame: ...
-    def ffill(self, limit: int | None = ...) -> DataFrame: ...
-    def fillna(
-        self,
-        value,
-        method: str | None = ...,
-        axis: Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: int | None = ...,
-        downcast: dict | None = ...,
-    ) -> DataFrame: ...
-    def first(self, **kwargs) -> DataFrame: ...
-    def head(self, n: int = ...) -> DataFrame: ...
-    def hist(
-        self,
-        data: DataFrame,
-        column: str | Sequence | None = ...,
-        by=...,
-        grid: bool = ...,
-        xlabelsize: int | None = ...,
-        xrot: float | None = ...,
-        ylabelsize: int | None = ...,
-        yrot: float | None = ...,
-        ax: PlotAxes | None = ...,
-        sharex: bool = ...,
-        sharey: bool = ...,
-        figsize: tuple[float, float] | None = ...,
-        layout: tuple[int, int] | None = ...,
-        bins: int | Sequence = ...,
-        backend: str | None = ...,
-        **kwargs,
-    ) -> AxesSubplot | Sequence[AxesSubplot]:
+    def __getattr__(self, name: str) -> SeriesGroupBy[Any, ByT]:
         """
 Make a histogram of the DataFrame's columns.
 
@@ -1884,95 +2427,8 @@ some animals, displayed in three bins
     >>> hist = df.hist(bins=3)
         """
         pass
-    def idxmax(
-        self, axis: Axis = ..., skipna: bool = ..., numeric_only: bool = ...
-    ) -> DataFrame: ...
-    def idxmin(
-        self, axis: Axis = ..., skipna: bool = ..., numeric_only: bool = ...
-    ) -> DataFrame: ...
-    def last(self, **kwargs) -> DataFrame: ...
-    def max(self, **kwargs) -> DataFrame: ...
-    def mean(self, **kwargs) -> DataFrame: ...
-    def median(self, **kwargs) -> DataFrame: ...
-    def min(self, **kwargs) -> DataFrame: ...
-    def nth(self, n: int | Sequence[int], dropna: str | None = ...) -> DataFrame: ...
-    def pct_change(
+    # Overrides that provide more precise return types over the GroupBy class
+    @final  # type: ignore[misc]
+    def __iter__(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
-        periods: int = ...,
-        fill_method: str = ...,
-        limit=...,
-        freq=...,
-        axis: Axis = ...,
-    ) -> DataFrame: ...
-    def prod(self, numeric_only: bool = ..., min_count: int = ...) -> DataFrame: ...
-    def quantile(
-        self, q: float = ..., interpolation: str = ..., numeric_only: bool = ...
-    ) -> DataFrame: ...
-    def resample(self, rule, *args, **kwargs) -> Grouper: ...
-    def sample(
-        self,
-        n: int | None = ...,
-        frac: float | None = ...,
-        replace: bool = ...,
-        weights: ListLike | None = ...,
-        random_state: RandomState | None = ...,
-    ) -> DataFrame: ...
-    def sem(self, ddof: int = ..., numeric_only: bool = ...) -> DataFrame: ...
-    def shift(
-        self,
-        periods: int = ...,
-        freq: str = ...,
-        axis: Axis = ...,
-        fill_value=...,
-    ) -> DataFrame: ...
-    @overload
-    def skew(
-        self,
-        axis: Axis = ...,
-        skipna: bool = ...,
-        numeric_only: bool = ...,
-        *,
-        level: Level,
-        **kwargs,
-    ) -> DataFrame: ...
-    @overload
-    def skew(
-        self,
-        axis: Axis = ...,
-        skipna: bool = ...,
-        level: None = ...,
-        numeric_only: bool = ...,
-        **kwargs,
-    ) -> Series: ...
-    def std(self, ddof: int = ..., numeric_only: bool = ...) -> DataFrame: ...
-    def sum(
-        self,
-        numeric_only: bool = ...,
-        min_count: int = ...,
-        engine=...,
-        engine_kwargs=...,
-    ) -> DataFrame: ...
-    def tail(self, n: int = ...) -> DataFrame: ...
-    def take(self, indices: Sequence, axis: Axis = ..., **kwargs) -> DataFrame: ...
-    def tshift(self, periods: int, freq=..., axis: Axis = ...) -> DataFrame: ...
-    def var(self, ddof: int = ..., numeric_only: bool = ...) -> DataFrame: ...
-    @overload
-    def value_counts(
-        self,
-        subset: ListLike | None = ...,
-        normalize: Literal[False] = ...,
-        sort: bool = ...,
-        ascending: bool = ...,
-        dropna: bool = ...,
-    ) -> Series[int]: ...
-    @overload
-    def value_counts(
-        self,
-        subset: ListLike | None,
-        normalize: Literal[True],
-        sort: bool = ...,
-        ascending: bool = ...,
-        dropna: bool = ...,
-    ) -> Series[float]: ...
-    def __getattr__(self, name: str) -> SeriesGroupBy[Any, ByT]: ...
-    def __iter__(self) -> Iterator[tuple[ByT, DataFrame]]: ...
+    ) -> Iterator[tuple[ByT, DataFrame]]: ...

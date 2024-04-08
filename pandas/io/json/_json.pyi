@@ -22,6 +22,7 @@ from pandas._typing import (
     NDFrameT,
     ReadBuffer,
     StorageOptions,
+    TimeUnit,
 )
 
 @overload
@@ -35,12 +36,12 @@ def read_json(
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
-    date_unit: Literal["s", "ms", "us", "ns"] | None = ...,
+    date_unit: TimeUnit | None = ...,
     encoding: str | None = ...,
-    encoding_errors: Literal[
-        "strict", "ignore", "replace", "backslashreplace", "surrogateescape"
-    ]
-    | None = ...,
+    encoding_errors: (
+        Literal["strict", "ignore", "replace", "backslashreplace", "surrogateescape"]
+        | None
+    ) = ...,
     lines: Literal[True],
     chunksize: int,
     compression: CompressionOptions = ...,
@@ -313,12 +314,12 @@ def read_json(
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
-    date_unit: Literal["s", "ms", "us", "ns"] | None = ...,
+    date_unit: TimeUnit | None = ...,
     encoding: str | None = ...,
-    encoding_errors: Literal[
-        "strict", "ignore", "replace", "backslashreplace", "surrogateescape"
-    ]
-    | None = ...,
+    encoding_errors: (
+        Literal["strict", "ignore", "replace", "backslashreplace", "surrogateescape"]
+        | None
+    ) = ...,
     lines: Literal[True],
     chunksize: int,
     compression: CompressionOptions = ...,
@@ -337,12 +338,12 @@ def read_json(
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
-    date_unit: Literal["s", "ms", "us", "ns"] | None = ...,
+    date_unit: TimeUnit | None = ...,
     encoding: str | None = ...,
-    encoding_errors: Literal[
-        "strict", "ignore", "replace", "backslashreplace", "surrogateescape"
-    ]
-    | None = ...,
+    encoding_errors: (
+        Literal["strict", "ignore", "replace", "backslashreplace", "surrogateescape"]
+        | None
+    ) = ...,
     lines: bool = ...,
     chunksize: None = ...,
     compression: CompressionOptions = ...,
@@ -361,12 +362,12 @@ def read_json(
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
-    date_unit: Literal["s", "ms", "us", "ns"] | None = ...,
+    date_unit: TimeUnit | None = ...,
     encoding: str | None = ...,
-    encoding_errors: Literal[
-        "strict", "ignore", "replace", "backslashreplace", "surrogateescape"
-    ]
-    | None = ...,
+    encoding_errors: (
+        Literal["strict", "ignore", "replace", "backslashreplace", "surrogateescape"]
+        | None
+    ) = ...,
     lines: bool = ...,
     chunksize: None = ...,
     compression: CompressionOptions = ...,

@@ -47,10 +47,12 @@ def read_csv(
     usecols: UsecolsArgType = ...,
     dtype: DtypeArg | defaultdict | None = ...,
     engine: CSVEngine | None = ...,
-    converters: Mapping[int | str, Callable[[str], Any]]
-    | Mapping[int, Callable[[str], Any]]
-    | Mapping[str, Callable[[str], Any]]
-    | None = ...,
+    converters: (
+        Mapping[int | str, Callable[[str], Any]]
+        | Mapping[int, Callable[[str], Any]]
+        | Mapping[str, Callable[[str], Any]]
+        | None
+    ) = ...,
     true_values: list[str] = ...,
     false_values: list[str] = ...,
     skipinitialspace: bool = ...,
@@ -62,11 +64,13 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates: bool
-    | list[int]
-    | list[str]
-    | Sequence[Sequence[int]]
-    | Mapping[str, Sequence[int | str]] = ...,
+    parse_dates: (
+        bool
+        | list[int]
+        | list[str]
+        | Sequence[Sequence[int]]
+        | Mapping[str, Sequence[int | str]]
+    ) = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
@@ -86,8 +90,9 @@ def read_csv(
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect = ...,
-    on_bad_lines: Literal["error", "warn", "skip"]
-    | Callable[[list[str]], list[str] | None] = ...,
+    on_bad_lines: (
+        Literal["error", "warn", "skip"] | Callable[[list[str]], list[str] | None]
+    ) = ...,
     delim_whitespace: bool = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
@@ -243,6 +248,8 @@ na_filter : bool, default True
     performance of reading a large file.
 verbose : bool, default False
     Indicate number of ``NA`` values placed in non-numeric columns.
+
+    .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
 parse_dates : bool, list of Hashable, list of lists or dict of {Hashable : list}, default False
@@ -492,10 +499,12 @@ def read_csv(
     usecols: UsecolsArgType = ...,
     dtype: DtypeArg | defaultdict | None = ...,
     engine: CSVEngine | None = ...,
-    converters: Mapping[int | str, Callable[[str], Any]]
-    | Mapping[int, Callable[[str], Any]]
-    | Mapping[str, Callable[[str], Any]]
-    | None = ...,
+    converters: (
+        Mapping[int | str, Callable[[str], Any]]
+        | Mapping[int, Callable[[str], Any]]
+        | Mapping[str, Callable[[str], Any]]
+        | None
+    ) = ...,
     true_values: list[str] = ...,
     false_values: list[str] = ...,
     skipinitialspace: bool = ...,
@@ -507,11 +516,13 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates: bool
-    | list[int]
-    | list[str]
-    | Sequence[Sequence[int]]
-    | Mapping[str, Sequence[int | str]] = ...,
+    parse_dates: (
+        bool
+        | list[int]
+        | list[str]
+        | Sequence[Sequence[int]]
+        | Mapping[str, Sequence[int | str]]
+    ) = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
@@ -531,8 +542,9 @@ def read_csv(
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect = ...,
-    on_bad_lines: Literal["error", "warn", "skip"]
-    | Callable[[list[str]], list[str] | None] = ...,
+    on_bad_lines: (
+        Literal["error", "warn", "skip"] | Callable[[list[str]], list[str] | None]
+    ) = ...,
     delim_whitespace: bool = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
@@ -552,10 +564,12 @@ def read_csv(
     usecols: UsecolsArgType = ...,
     dtype: DtypeArg | defaultdict | None = ...,
     engine: CSVEngine | None = ...,
-    converters: Mapping[int | str, Callable[[str], Any]]
-    | Mapping[int, Callable[[str], Any]]
-    | Mapping[str, Callable[[str], Any]]
-    | None = ...,
+    converters: (
+        Mapping[int | str, Callable[[str], Any]]
+        | Mapping[int, Callable[[str], Any]]
+        | Mapping[str, Callable[[str], Any]]
+        | None
+    ) = ...,
     true_values: list[str] = ...,
     false_values: list[str] = ...,
     skipinitialspace: bool = ...,
@@ -567,11 +581,13 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates: bool
-    | list[int]
-    | list[str]
-    | Sequence[Sequence[int]]
-    | Mapping[str, Sequence[int | str]] = ...,
+    parse_dates: (
+        bool
+        | list[int]
+        | list[str]
+        | Sequence[Sequence[int]]
+        | Mapping[str, Sequence[int | str]]
+    ) = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
@@ -591,8 +607,9 @@ def read_csv(
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect = ...,
-    on_bad_lines: Literal["error", "warn", "skip"]
-    | Callable[[list[str]], list[str] | None] = ...,
+    on_bad_lines: (
+        Literal["error", "warn", "skip"] | Callable[[list[str]], list[str] | None]
+    ) = ...,
     delim_whitespace: bool = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
@@ -612,10 +629,12 @@ def read_table(
     usecols: UsecolsArgType = ...,
     dtype: DtypeArg | defaultdict | None = ...,
     engine: CSVEngine | None = ...,
-    converters: Mapping[int | str, Callable[[str], Any]]
-    | Mapping[int, Callable[[str], Any]]
-    | Mapping[str, Callable[[str], Any]]
-    | None = ...,
+    converters: (
+        Mapping[int | str, Callable[[str], Any]]
+        | Mapping[int, Callable[[str], Any]]
+        | Mapping[str, Callable[[str], Any]]
+        | None
+    ) = ...,
     true_values: list[str] = ...,
     false_values: list[str] = ...,
     skipinitialspace: bool = ...,
@@ -627,11 +646,13 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates: bool
-    | list[int]
-    | list[str]
-    | Sequence[Sequence[int]]
-    | Mapping[str, Sequence[int | str]] = ...,
+    parse_dates: (
+        bool
+        | list[int]
+        | list[str]
+        | Sequence[Sequence[int]]
+        | Mapping[str, Sequence[int | str]]
+    ) = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
@@ -651,8 +672,9 @@ def read_table(
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect = ...,
-    on_bad_lines: Literal["error", "warn", "skip"]
-    | Callable[[list[str]], list[str] | None] = ...,
+    on_bad_lines: (
+        Literal["error", "warn", "skip"] | Callable[[list[str]], list[str] | None]
+    ) = ...,
     delim_whitespace: bool = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
@@ -807,6 +829,8 @@ na_filter : bool, default True
     performance of reading a large file.
 verbose : bool, default False
     Indicate number of ``NA`` values placed in non-numeric columns.
+
+    .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
 parse_dates : bool, list of Hashable, list of lists or dict of {Hashable : list}, default False
@@ -1056,10 +1080,12 @@ def read_table(
     usecols: UsecolsArgType = ...,
     dtype: DtypeArg | defaultdict | None = ...,
     engine: CSVEngine | None = ...,
-    converters: Mapping[int | str, Callable[[str], Any]]
-    | Mapping[int, Callable[[str], Any]]
-    | Mapping[str, Callable[[str], Any]]
-    | None = ...,
+    converters: (
+        Mapping[int | str, Callable[[str], Any]]
+        | Mapping[int, Callable[[str], Any]]
+        | Mapping[str, Callable[[str], Any]]
+        | None
+    ) = ...,
     true_values: list[str] = ...,
     false_values: list[str] = ...,
     skipinitialspace: bool = ...,
@@ -1071,11 +1097,13 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates: bool
-    | list[int]
-    | list[str]
-    | Sequence[Sequence[int]]
-    | Mapping[str, Sequence[int | str]] = ...,
+    parse_dates: (
+        bool
+        | list[int]
+        | list[str]
+        | Sequence[Sequence[int]]
+        | Mapping[str, Sequence[int | str]]
+    ) = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
@@ -1095,8 +1123,9 @@ def read_table(
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect = ...,
-    on_bad_lines: Literal["error", "warn", "skip"]
-    | Callable[[list[str]], list[str] | None] = ...,
+    on_bad_lines: (
+        Literal["error", "warn", "skip"] | Callable[[list[str]], list[str] | None]
+    ) = ...,
     delim_whitespace: bool = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
@@ -1115,10 +1144,12 @@ def read_table(
     usecols: UsecolsArgType = ...,
     dtype: DtypeArg | defaultdict | None = ...,
     engine: CSVEngine | None = ...,
-    converters: Mapping[int | str, Callable[[str], Any]]
-    | Mapping[int, Callable[[str], Any]]
-    | Mapping[str, Callable[[str], Any]]
-    | None = ...,
+    converters: (
+        Mapping[int | str, Callable[[str], Any]]
+        | Mapping[int, Callable[[str], Any]]
+        | Mapping[str, Callable[[str], Any]]
+        | None
+    ) = ...,
     true_values: list[str] = ...,
     false_values: list[str] = ...,
     skipinitialspace: bool = ...,
@@ -1130,11 +1161,13 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates: bool
-    | list[int]
-    | list[str]
-    | Sequence[Sequence[int]]
-    | Mapping[str, Sequence[int | str]] = ...,
+    parse_dates: (
+        bool
+        | list[int]
+        | list[str]
+        | Sequence[Sequence[int]]
+        | Mapping[str, Sequence[int | str]]
+    ) = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
@@ -1154,8 +1187,9 @@ def read_table(
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect = ...,
-    on_bad_lines: Literal["error", "warn", "skip"]
-    | Callable[[list[str]], list[str] | None] = ...,
+    on_bad_lines: (
+        Literal["error", "warn", "skip"] | Callable[[list[str]], list[str] | None]
+    ) = ...,
     delim_whitespace: bool = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,

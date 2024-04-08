@@ -253,16 +253,20 @@ Index([1, 2, 3], dtype='int64')
     @overload  # type: ignore[override]
     def __getitem__(
         self,
-        idx: slice
-        | np_ndarray_anyint
-        | Sequence[int]
-        | Index
-        | pd.Series[bool]
-        | Sequence[bool]
-        | np_ndarray_bool,
+        idx: (
+            slice
+            | np_ndarray_anyint
+            | Sequence[int]
+            | Index
+            | pd.Series[bool]
+            | Sequence[bool]
+            | np_ndarray_bool
+        ),
     ) -> Self: ...
     @overload
-    def __getitem__(self, key: int) -> tuple: ...
+    def __getitem__(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, key: int
+    ) -> tuple: ...
     def take(
         self, indices, axis: int = ..., allow_fill: bool = ..., fill_value=..., **kwargs
     ):
