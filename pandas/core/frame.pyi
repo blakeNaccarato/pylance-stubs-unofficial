@@ -50,7 +50,11 @@ from pandas.core.window.rolling import (
     Rolling,
     Window,
 )
-from typing_extensions import Self
+from typing_extensions import (
+    Never,
+    Self,
+    TypeAlias,
+)
 import xarray as xr
 
 from pandas._libs.lib import NoDefault
@@ -112,6 +116,7 @@ from pandas._typing import (
     SortKind,
     StataDateFormat,
     StorageOptions,
+    StrDtypeArg,
     StrLike,
     Suffixes,
     T as _T,
@@ -320,13 +325,22 @@ Name: population, dtype: int64
     def dot(self, other: Series) -> Series: ...
     def __matmul__(self, other): ...
     def __rmatmul__(self, other): ...
+    @overload
     @classmethod
     def from_dict(
         cls,
         data: dict[Any, Any],
-        orient: Literal["columns", "index", "tight"] = ...,
-        dtype: _str = ...,
-        columns: list[_str] = ...,
+        orient: Literal["index"],
+        dtype: AstypeArg | None = ...,
+        columns: Axes | None = ...,
+    ) -> DataFrame: ...
+    @overload
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict[Any, Any],
+        orient: Literal["columns", "tight"] = ...,
+        dtype: AstypeArg | None = ...,
     ) -> DataFrame: ...
     def to_numpy(
         self,
@@ -1152,10 +1166,47 @@ memory usage: 165.9 MB
         self, expr: _str, *, inplace: Literal[False] = ..., **kwargs
     ) -> DataFrame: ...
     def eval(self, expr: _str, *, inplace: _bool = ..., **kwargs): ...
+    AstypeArgExt: TypeAlias = (
+        AstypeArg
+        | Literal[
+            "number",
+            "datetime64",
+            "datetime",
+            "timedelta",
+            "timedelta64",
+            "datetimetz",
+            "datetime64[ns]",
+        ]
+    )
+    AstypeArgExtList: TypeAlias = AstypeArgExt | list[AstypeArgExt]
+    @overload
+    def select_dtypes(
+        self, include: StrDtypeArg, exclude: AstypeArgExtList | None = ...
+    ) -> Never: ...
+    @overload
+    def select_dtypes(
+        self, include: AstypeArgExtList | None, exclude: StrDtypeArg
+    ) -> Never: ...
+    @overload
+    def select_dtypes(self, exclude: StrDtypeArg) -> Never: ...
+    @overload
+    def select_dtypes(self, include: list[Never], exclude: list[Never]) -> Never: ...
+    @overload
     def select_dtypes(
         self,
-        include: _str | list[_str] | None = ...,
-        exclude: _str | list[_str] | None = ...,
+        include: AstypeArgExtList,
+        exclude: AstypeArgExtList | None = ...,
+    ) -> DataFrame: ...
+    @overload
+    def select_dtypes(
+        self,
+        include: AstypeArgExtList | None,
+        exclude: AstypeArgExtList,
+    ) -> DataFrame: ...
+    @overload
+    def select_dtypes(
+        self,
+        exclude: AstypeArgExtList,
     ) -> DataFrame: ...
     def insert(
         self,

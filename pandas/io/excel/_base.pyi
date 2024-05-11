@@ -23,6 +23,8 @@ from pandas._libs.lib import NoDefault
 from pandas._typing import (
     Dtype,
     DtypeBackend,
+    ExcelReadEngine,
+    ExcelWriteEngine,
     FilePath,
     IntStrT,
     ListLikeHashable,
@@ -50,7 +52,7 @@ def read_excel(
     index_col: int | Sequence[int] | None = ...,
     usecols: str | UsecolsArgType = ...,
     dtype: str | Dtype | Mapping[str, str | Dtype] | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: ExcelReadEngine | None = ...,
     converters: Mapping[int | str, Callable[[object], object]] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -383,7 +385,7 @@ def read_excel(
     index_col: int | Sequence[int] | None = ...,
     usecols: str | UsecolsArgType = ...,
     dtype: str | Dtype | Mapping[str, str | Dtype] | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: ExcelReadEngine | None = ...,
     converters: Mapping[int | str, Callable[[object], object]] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -426,7 +428,7 @@ def read_excel(  # type: ignore[misc]
     index_col: int | Sequence[int] | None = ...,
     usecols: str | UsecolsArgType = ...,
     dtype: str | Dtype | Mapping[str, str | Dtype] | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: ExcelReadEngine | None = ...,
     converters: Mapping[int | str, Callable[[object], object]] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -468,7 +470,7 @@ def read_excel(
     index_col: int | Sequence[int] | None = ...,
     usecols: str | UsecolsArgType = ...,
     dtype: str | Dtype | Mapping[str, str | Dtype] | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: ExcelReadEngine | None = ...,
     converters: Mapping[int | str, Callable[[object], object]] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -497,7 +499,7 @@ class ExcelWriter:
     def __init__(
         self,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
-        engine: Literal["auto", "openpyxl", "odf", "xlsxwriter"] | None = ...,
+        engine: ExcelWriteEngine | Literal["auto"] | None = ...,
         date_format: str | None = ...,
         datetime_format: str | None = ...,
         mode: Literal["w", "a"] = ...,
@@ -508,7 +510,7 @@ class ExcelWriter:
     @property
     def supported_extensions(self) -> tuple[str, ...]: ...
     @property
-    def engine(self) -> Literal["openpyxl", "odf", "xlsxwriter"]: ...
+    def engine(self) -> ExcelWriteEngine: ...
     @property
     def sheets(self) -> dict[str, Any]: ...
     @property

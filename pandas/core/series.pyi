@@ -198,6 +198,7 @@ class _LocIndexerSeries(_LocIndexer, Generic[S1]):
             | list[str]
             | slice
             | _IndexSliceTuple
+            | Sequence[_IndexSliceTuple]
             | Callable
         ),
         # _IndexSliceTuple is when having a tuple that includes a slice.  Could just
@@ -1727,7 +1728,9 @@ Name: Data, dtype: int64
     @overload
     def apply(
         self,
-        func: Callable[..., Scalar | Sequence | set | Mapping | NAType | None],
+        func: Callable[
+            ..., Scalar | Sequence | set | Mapping | NAType | frozenset | None
+        ],
         convertDType: _bool = ...,
         args: tuple = ...,
         **kwds,
