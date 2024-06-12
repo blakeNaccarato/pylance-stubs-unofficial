@@ -235,10 +235,11 @@ class Series(IndexOpsMixin[S1], NDFrame):
         cls,
         data: (
             DatetimeIndex
-            | Sequence[np.datetime64 | datetime]
-            | dict[HashableT1, np.datetime64 | datetime]
+            | Sequence[np.datetime64 | datetime | date]
+            | dict[HashableT1, np.datetime64 | datetime | date]
             | np.datetime64
             | datetime
+            | date
         ),
         index: Axes | None = ...,
         *,
@@ -259,7 +260,7 @@ class Series(IndexOpsMixin[S1], NDFrame):
     @overload
     def __new__(  # type: ignore[overload-overlap]
         cls,
-        data: PeriodIndex,
+        data: PeriodIndex | Sequence[Period],
         index: Axes | None = ...,
         *,
         dtype: PeriodDtype = ...,
@@ -1090,7 +1091,12 @@ Name: Max Speed, dtype: float64
     def cov(
         self, other: Series[S1], min_periods: int | None = ..., ddof: int = ...
     ) -> float: ...
-    def diff(self, periods: int = ...) -> Series[S1]:
+    @overload
+    def diff(self: Series[_bool], periods: int = ...) -> Series[type[object]]: ...  # type: ignore[overload-overlap]
+    @overload
+    def diff(self: Series[complex], periods: int = ...) -> Series[complex]: ...  # type: ignore[overload-overlap]
+    @overload
+    def diff(self: Series[bytes], periods: int = ...) -> Never:
         """
 First discrete difference of element.
 
@@ -1168,6 +1174,12 @@ Overflow in input dtype
 dtype: float64
         """
         pass
+    @overload
+    def diff(self: Series[type], periods: int = ...) -> Never: ...
+    @overload
+    def diff(self: Series[str], periods: int = ...) -> Never: ...
+    @overload
+    def diff(self, periods: int = ...) -> Series[float]: ...
     def autocorr(self, lag: int = ...) -> float: ...
     @overload
     def dot(self, other: Series[S1]) -> Scalar: ...
@@ -2422,7 +2434,13 @@ See the :ref:`user guide <basics.reindexing>` for more.
     ) -> Series[S1]: ...
     def mask(
         self,
-        cond: MaskType,
+        cond: (
+            Series[S1]
+            | Series[_bool]
+            | np.ndarray
+            | Callable[[Series[S1]], Series[bool]]
+            | Callable[[S1], bool]
+        ),
         other: Scalar | Series[S1] | DataFrame | Callable | NAType | None = ...,
         *,
         inplace: _bool = ...,
@@ -2512,16 +2530,16 @@ See the :ref:`user guide <basics.reindexing>` for more.
     def __eq__(self, other: object) -> Series[_bool]: ...  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
     def __floordiv__(self, other: num | _ListLike | Series[S1]) -> Series[int]: ...
     def __ge__(  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
-        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta
+        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta | date
     ) -> Series[_bool]: ...
     def __gt__(  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
-        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta
+        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta | date
     ) -> Series[_bool]: ...
     def __le__(  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
-        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta
+        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta | date
     ) -> Series[_bool]: ...
     def __lt__(  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
-        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta
+        self, other: S1 | _ListLike | Series[S1] | datetime | timedelta | date
     ) -> Series[_bool]: ...
     @overload
     def __mul__(
@@ -2556,6 +2574,11 @@ See the :ref:`user guide <basics.reindexing>` for more.
     def __rdivmod__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
     def __rfloordiv__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
     def __rmod__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
+    @overload
+    def __rmul__(
+        self, other: timedelta | Timedelta | TimedeltaSeries | np.timedelta64
+    ) -> TimedeltaSeries: ...
+    @overload
     def __rmul__(self, other: num | _ListLike | Series) -> Series: ...
     def __rnatmul__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
     def __rpow__(self, other: num | _ListLike | Series[S1]) -> Series[S1]: ...
@@ -4192,13 +4215,14 @@ e    NaN
 dtype: float64
         """
         pass
+    @overload
     def mul(
         self,
-        other: num | _ListLike | Series[S1],
+        other: timedelta | Timedelta | TimedeltaSeries | np.timedelta64,
         level: Level | None = ...,
         fill_value: float | None = ...,
         axis: AxisIndex | None = ...,
-    ) -> Series[S1]:
+    ) -> TimedeltaSeries:
         """
 Return Multiplication of series and other, element-wise (binary operator `mul`).
 
@@ -4256,6 +4280,14 @@ e    NaN
 dtype: float64
         """
         pass
+    @overload
+    def mul(
+        self,
+        other: num | _ListLike | Series,
+        level: Level | None = ...,
+        fill_value: float | None = ...,
+        axis: AxisIndex | None = ...,
+    ) -> Series: ...
     def multiply(
         self,
         other: num | _ListLike | Series[S1],
@@ -4856,13 +4888,14 @@ e    NaN
 dtype: float64
         """
         pass
+    @overload
     def rmul(
         self,
-        other: Series[S1] | Scalar,
+        other: timedelta | Timedelta | TimedeltaSeries | np.timedelta64,
         level: Level | None = ...,
         fill_value: float | None = ...,
         axis: AxisIndex = ...,
-    ) -> Series[S1]:
+    ) -> TimedeltaSeries:
         """
 Return Multiplication of series and other, element-wise (binary operator `rmul`).
 
@@ -4920,6 +4953,14 @@ e    NaN
 dtype: float64
         """
         pass
+    @overload
+    def rmul(
+        self,
+        other: num | _ListLike | Series,
+        level: Level | None = ...,
+        fill_value: float | None = ...,
+        axis: AxisIndex = ...,
+    ) -> Series: ...
     @overload
     def rolling(
         self,
@@ -6006,6 +6047,7 @@ class TimestampSeries(Series[Timestamp]):
         numeric_only: _bool = ...,
         **kwargs,
     ) -> Timedelta: ...
+    def diff(self, periods: int = ...) -> TimedeltaSeries: ...  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
 
 class TimedeltaSeries(Series[Timedelta]):
     # ignores needed because of mypy
@@ -6102,11 +6144,13 @@ class TimedeltaSeries(Series[Timedelta]):
         numeric_only: _bool = ...,
         **kwargs,
     ) -> Timedelta: ...
+    def diff(self, periods: int = ...) -> TimedeltaSeries: ...  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
 
 class PeriodSeries(Series[Period]):
     @property
     def dt(self) -> PeriodProperties: ...  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
     def __sub__(self, other: PeriodSeries) -> OffsetSeries: ...  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
+    def diff(self, periods: int = ...) -> OffsetSeries: ...  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
 
 class OffsetSeries(Series[BaseOffset]):
     @overload  # type: ignore[override]
@@ -6119,3 +6163,4 @@ class OffsetSeries(Series[BaseOffset]):
 class IntervalSeries(Series[Interval[_OrderableT]], Generic[_OrderableT]):
     @property
     def array(self) -> IntervalArray: ...
+    def diff(self, periods: int = ...) -> Never: ...

@@ -315,9 +315,14 @@ Name: population, dtype: int64
         """
         pass
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]: ...
+    @overload
     def itertuples(
-        self, index: _bool = ..., name: _str | None = ...
+        self, index: _bool = ..., name: _str = ...
     ) -> Iterable[_PandasNamedTuple]: ...
+    @overload
+    def itertuples(
+        self, index: _bool = ..., name: None = None
+    ) -> Iterable[tuple[Any, ...]]: ...
     def __len__(self) -> int: ...
     @overload
     def dot(self, other: DataFrame | ArrayLike) -> DataFrame: ...
@@ -3017,8 +3022,13 @@ foo large  2.000000   5  4.500000    4
     small  2.333333   6  4.333333    2
         """
         pass
+    @overload
     def stack(
-        self, level: Level | list[Level] = ..., dropna: _bool = ...
+        self, level: Level | list[Level] = ..., dropna: _bool = ..., sort: _bool = ...
+    ) -> DataFrame | Series[Any]: ...
+    @overload
+    def stack(
+        self, level: Level | list[Level] = ..., future_stack: _bool = ...
     ) -> DataFrame | Series[Any]: ...
     def explode(
         self, column: Sequence[Hashable], ignore_index: _bool = ...
@@ -6559,7 +6569,13 @@ Q2 A  False     True
         pass
     def mask(
         self,
-        cond: Series | DataFrame | np.ndarray,
+        cond: (
+            Series
+            | DataFrame
+            | np.ndarray
+            | Callable[[DataFrame], DataFrame]
+            | Callable[[Any], _bool]
+        ),
         other=...,
         *,
         inplace: _bool = ...,
