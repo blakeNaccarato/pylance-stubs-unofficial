@@ -448,7 +448,6 @@ Examples
         self,
         buf: FilePath | WriteBuffer[str],
         columns: list[_str] | None = ...,
-        col_space: int | None = ...,
         header: _bool | list[_str] = ...,
         index: _bool = ...,
         na_rep: _str = ...,
@@ -474,7 +473,6 @@ Examples
         self,
         buf: None = ...,
         columns: list[_str] | None = ...,
-        col_space: int | None = ...,
         header: _bool | list[_str] = ...,
         index: _bool = ...,
         na_rep: _str = ...,
@@ -698,9 +696,7 @@ need to create it using either Pathlib or os:
         errors: _str = ...,
         storage_options: StorageOptions = ...,
     ) -> _str: ...
-    def take(
-        self, indices, axis=..., is_copy: _bool | None = ..., **kwargs
-    ) -> Self: ...
+    def take(self, indices, axis=..., **kwargs) -> Self: ...
     def __delitem__(self, idx: Hashable) -> None: ...
     def reindex_like(
         self,
@@ -2084,7 +2080,6 @@ Freq: 17min, dtype: int64
         inplace: _bool = ...,
         axis=...,
         level=...,
-        try_cast: _bool = ...,
     ):
         """
 Replace values where the condition is False.
@@ -2232,7 +2227,6 @@ dtype: int64
         inplace: _bool = ...,
         axis=...,
         level=...,
-        try_cast: _bool = ...,
     ):
         """
 Replace values where the condition is True.
@@ -2486,8 +2480,6 @@ Examples
 2020-01-05      45    30.0    15.0
         """
         pass
-    def slice_shift(self, periods: int = ..., axis=...) -> Self: ...
-    def tshift(self, periods: int = ..., freq=..., axis=...) -> Self: ...
     def truncate(self, before=..., after=..., axis=..., copy: _bool = ...) -> Self: ...
     def tz_convert(self, tz, axis=..., level=..., copy: _bool = ...) -> Self:
         """
@@ -2703,13 +2695,7 @@ dtype: int64
         """
         pass
     def abs(self) -> Self: ...
-    def describe(
-        self,
-        percentiles=...,
-        include=...,
-        exclude=...,
-        datetime_is_numeric: _bool | None = ...,
-    ) -> NDFrame: ...
+    def describe(self, percentiles=..., include=..., exclude=...) -> NDFrame: ...
     def pct_change(
         self, periods=..., fill_method=..., limit=..., freq=..., **kwargs
     ) -> Self: ...

@@ -1221,7 +1221,6 @@ memory usage: 165.9 MB
         allow_duplicates: _bool = ...,
     ) -> None: ...
     def assign(self, **kwargs) -> DataFrame: ...
-    def lookup(self, row_labels: Sequence, col_labels: Sequence) -> np.ndarray: ...
     def align(
         self,
         other: NDFrameT,
@@ -5046,7 +5045,6 @@ use ``axis=1``
         percentiles: list[float] | None = ...,
         include: Literal["all"] | list[Dtype] | None = ...,
         exclude: list[Dtype] | None = ...,
-        datetime_is_numeric: _bool | None = ...,
     ) -> DataFrame: ...
     def div(
         self,
@@ -6581,7 +6579,6 @@ Q2 A  False     True
         inplace: _bool = ...,
         axis: Axis | None = ...,
         level: Level | None = ...,
-        try_cast: _bool = ...,
     ) -> DataFrame: ...
     def max(
         self,
@@ -9567,7 +9564,6 @@ Series or scalar
             dtype: float64
         """
         pass
-    def slice_shift(self, periods: int = ..., axis: Axis = ...) -> DataFrame: ...
     def squeeze(self, axis: Axis | None = ...): ...
     def std(
         self,
@@ -10088,14 +10084,7 @@ nan
         pass
     def swapaxes(self, axis1: Axis, axis2: Axis, copy: _bool = ...) -> DataFrame: ...
     def tail(self, n: int = ...) -> DataFrame: ...
-    def take(
-        self,
-        indices: list,
-        axis: Axis = ...,
-        is_copy: _bool | None = ...,
-        **kwargs,
-    ) -> DataFrame: ...
-    def tshift(self, periods: int = ..., freq=..., axis: Axis = ...) -> DataFrame: ...
+    def take(self, indices: list, axis: Axis = ..., **kwargs) -> DataFrame: ...
     def to_clipboard(
         self, excel: _bool = ..., sep: _str | None = ..., **kwargs
     ) -> None: ...
@@ -10402,7 +10391,6 @@ B square        0.0      0.0
         axis: Axis | None = ...,
         copy: _bool = ...,
     ) -> DataFrame: ...
-    # def tshift
     def tz_convert(
         self,
         tz,
@@ -10498,7 +10486,6 @@ dtype: float64
         inplace: _bool = ...,
         axis: Axis | None = ...,
         level: Level | None = ...,
-        try_cast: _bool = ...,
     ) -> DataFrame: ...
     # Move from generic because Series is Generic and it returns Series[bool] there
     def __invert__(self) -> DataFrame: ...

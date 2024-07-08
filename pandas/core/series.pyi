@@ -526,11 +526,7 @@ Use ``astype`` to change the dtype instead.
     @property
     def axes(self) -> list: ...
     def take(
-        self,
-        indices: Sequence,
-        axis: AxisIndex = ...,
-        is_copy: _bool | None = ...,
-        **kwargs,
+        self, indices: Sequence, axis: AxisIndex = ..., **kwargs
     ) -> Series[S1]: ...
     def __getattr__(self, name: _str) -> S1: ...
     @overload
@@ -2430,7 +2426,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         inplace: _bool = ...,
         axis: AxisIndex | None = ...,
         level: Level | None = ...,
-        try_cast: _bool = ...,
     ) -> Series[S1]: ...
     def mask(
         self,
@@ -2446,11 +2441,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         inplace: _bool = ...,
         axis: AxisIndex | None = ...,
         level: Level | None = ...,
-        try_cast: _bool = ...,
-    ) -> Series[S1]: ...
-    def slice_shift(self, periods: int = ..., axis: AxisIndex = ...) -> Series[S1]: ...
-    def tshift(
-        self, periods: int = ..., freq=..., axis: AxisIndex = ...
     ) -> Series[S1]: ...
     def truncate(
         self,
@@ -2481,7 +2471,6 @@ See the :ref:`user guide <basics.reindexing>` for more.
         percentiles: list[float] | None = ...,
         include: Literal["all"] | list[S1] | None = ...,
         exclude: S1 | list[S1] | None = ...,
-        datetime_is_numeric: _bool | None = ...,
     ) -> Series[S1]: ...
     def pct_change(
         self,
