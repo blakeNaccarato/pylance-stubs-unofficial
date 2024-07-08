@@ -28,7 +28,7 @@ function Update-PylanceStubs {
     $version = (($latest_pylance | Split-Path -Leaf) -Split '-')[-1]
     git add -A
     git commit -m $version
-    git tag $version
+    git tag --sign -m $version $version
     git push
     git push --tags
 }
